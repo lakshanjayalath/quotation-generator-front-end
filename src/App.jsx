@@ -14,6 +14,8 @@ function App() {
           <Route path='/dashboard' element={<Dashboard />} />
           <Route path='/items' element={<ItemPage />} />
           <Route path='/new-item' element={<NewItemForm />} />
+          <Route path='/client-page' element={<ClientPage/>} />
+          <Route path='/new-client' element={<NewClientForm/>}/>
         </Routes>
       </div>
 
