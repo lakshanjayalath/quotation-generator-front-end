@@ -73,10 +73,10 @@ function ItemRow({
           variant="contained"
           endIcon={<ArrowDropDownIcon />}
           sx={{
-            backgroundColor: "primary.main",
+            backgroundColor: "#000000",
             color: "white",
             textTransform: "none",
-            "&:hover": { backgroundColor: "primary.dark" },
+            "&:hover": { backgroundColor: "#333333" },
           }}
           onClick={(e) => handleMenuOpen(e, row.id)}
         >
@@ -203,6 +203,18 @@ export default function ItemPage() {
             onClick={() => navigate("/new-item")}
           >
             New Item
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              textTransform: "none",
+              backgroundColor: "#f5f5f5",
+              color: "black",
+              "&:hover": { backgroundColor: "#e0e0e0" },
+            }}
+            onClick={() => navigate("/new-quote")}
+          >
+            Generate Quotation
           </Button>
         </Box>
       </Box>
