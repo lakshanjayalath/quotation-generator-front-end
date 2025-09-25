@@ -2,6 +2,9 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import NewItemForm from './components/NewItemForm'
 import ItemPage from './components/ItemPage'
 import Dashboard from './pages/Dashboard'
+import ClientPage from './components/ClientPage'
+import NewClientForm from './components/NewClientForm'
+
 
 function App() {
 
@@ -14,8 +17,8 @@ function App() {
           <Route path='/dashboard' element={<Dashboard />} />
           <Route path='/items' element={<ItemPage />} />
           <Route path='/new-item' element={<NewItemForm />} />
-          <Route path='/client-page' element={<ClientPage/>} />
-          <Route path='/new-client' element={<NewClientForm/>}/>
+          <Route path='/ClientPage' element={<ClientPage />} />
+          <Route path='/new-client' element={<NewClientForm />} />
         </Routes>
       </div>
 
@@ -23,4 +26,4 @@ function App() {
   )
 }
 
-export default App
+export default App
