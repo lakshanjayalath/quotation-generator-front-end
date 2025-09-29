@@ -31,7 +31,7 @@ function createData(clientId, name, email, contactNumber, createdDate) {
 const rowsData = [
   createData(1, "Lakshan Perera", "lakshan.perera@example.com", "+94711234567", "2025-01-05"),
   createData(2, "Nimali Silva", "nimali.silva@example.com", "+94776543210", "2025-01-10"),
-  createData(3, "Ruwan Jayasinghe", "ruwan.jaya@example.com", "+94713456789", "2025-01-15"),
+  createData(3, "Ruwani Jayasinghe", "ruwani.jaya@example.com", "+94713456789", "2025-01-15"),
   createData(4, "Sandun Fernando", "sandun.fernando@example.com", "+94772345678", "2025-01-20"),
   createData(5, "Kasun Abeysekera", "kasun.abey@example.com", "+94719876543", "2025-01-25"),
   createData(6, "Dilani Kariyawasam", "dilani.kari@example.com", "+94717788990", "2025-02-01"),
