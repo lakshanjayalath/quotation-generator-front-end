@@ -2,9 +2,9 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Paper, 
+  Paper,
   Table,
-  TableBody, 
+  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -18,34 +18,46 @@ import {
   FormControl,
   Select,
   TablePagination,
+  Chip,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import HomeIcon from '@mui/icons-material/Home';
+import HomeIcon from "@mui/icons-material/Home";
 
-function createData(id, item, description, price, qty) {
-  return { id, item, description, price, qty };
+// Row data factory
+function createData(id, status, number, client, amount, netAmount, date, validUntil) {
+  return { id, status, number, client, amount, netAmount, date, validUntil };
 }
 
+// Sample rows
 const rowsData = [
-  createData(1, "Wireless Mouse", "Ergonomic Bluetooth mouse", "2500 LKR", 12),
-  createData(2, "Mechanical Keyboard", "RGB backlit keyboard", "12,500 LKR", 8),
-  createData(3, "Laptop Stand", "Adjustable aluminum stand", "4500 LKR", 20),
-  createData(4, "USB-C Hub", "Multi-port adapter", "3500 LKR", 15),
-  createData(5, "External SSD", "1TB portable SSD", "28,000 LKR", 5),
-  createData(6, "Gaming Headset", "Surround sound headphones", "18,000 LKR", 7),
-  createData(7, "Smartwatch", "Fitness tracker with GPS", "32,000 LKR", 10),
-  createData(8, "Webcam", "1080p HD camera", "7500 LKR", 6),
-  createData(9, "Portable Speaker", "Bluetooth waterproof speaker", "14,000 LKR", 9),
-  createData(10, "Power Bank", "20,000mAh fast charging", "6500 LKR", 25),
-  createData(11, "Wireless Charger", "Fast Qi charger", "4800 LKR", 18),
-  createData(12, "LED Monitor", "27-inch Full HD display", "55,000 LKR", 4),
-  createData(13, "Graphics Tablet", "Digital drawing pad", "22,000 LKR", 6),
-  createData(14, "Noise Cancelling Earbuds", "Wireless ANC earbuds", "19,500 LKR", 8),
-  createData(15, "Portable Projector", "Mini home projector", "42,000 LKR", 3),
+  createData(1, "Sent", "0001", "Lakshan Perera", 2508.58, 2001.05, "18/Aug/2025", "28/Aug/2025"),
+  createData(2, "Sent", "0002", "Nimali Silva", 3370.64, 2890.0, "18/Aug/2025", "28/Aug/2025"),
+  createData(3, "Sent", "0003", "Ruwan Jayasinghe", 337.07, 250.58, "18/Aug/2025", "28/Aug/2025"),
+  createData(4, "Expired", "0004", "Sanduni Fernando", 12508.72, 10200.0, "18/Aug/2025", "28/Aug/2025"),
+  createData(5, "Sent", "0005", "Kasun Abeysekera", 2508.58, 2508.58, "18/Aug/2025", "28/Aug/2025"),
+  createData(6, "Sent", "0006", "Dilani Kariyawasam", 5500.21, 4420.0, "18/Aug/2025", "28/Aug/2025"),
+  createData(7, "Sent", "0007", "Chathura Weerasingha", 4212.23, 4000.0, "18/Aug/2025", "28/Aug/2025"),
+  createData(8, "Sent", "0008", "Ishara Senanayake", 2508.0, 2000.0, "18/Aug/2025", "28/Aug/2025"),
+  createData(8, "Expired", "0009", "Sajith Ranasinghe", 2508.0, 2000.0, "18/Aug/2025", "28/Aug/2025"),
 ];
 
+// Status Chip Component
+function StatusChip({ status }) {
+  return (
+    <Chip
+      label={status}
+      size="small"
+      sx={{
+        backgroundColor: status === "Expired" ? "#DEA3A4" : "#CADF9A",
+        color: status === "Expired" ? "#555555" : "#555555",
+        fontWeight: 500,
+      }}
+    />
+  );
+}
+
 // Row Component
-function ItemRow({
+function QuotationRow({
   row,
   isSelected,
   handleClick,
@@ -61,13 +73,17 @@ function ItemRow({
           color="primary"
           checked={isSelected}
           onClick={() => handleClick(row.id)}
-          inputProps={{ "aria-labelledby": `item-${row.id}` }}
         />
       </TableCell>
-      <TableCell id={`item-${row.id}`}>{row.item}</TableCell>
-      <TableCell>{row.description}</TableCell>
-      <TableCell>{row.price}</TableCell>
-      <TableCell>{row.qty}</TableCell>
+      <TableCell>
+        <StatusChip status={row.status} />
+      </TableCell>
+      <TableCell>{row.number}</TableCell>
+      <TableCell>{row.client}</TableCell>
+      <TableCell>{row.amount.toLocaleString()}</TableCell>
+      <TableCell>{row.netAmount.toLocaleString()}</TableCell>
+      <TableCell>{row.date}</TableCell>
+      <TableCell>{row.validUntil}</TableCell>
       <TableCell align="center">
         <Button
           variant="contained"
@@ -80,13 +96,14 @@ function ItemRow({
           }}
           onClick={(e) => handleMenuOpen(e, row.id)}
         >
-          Action
+          Actions
         </Button>
         <Menu
           anchorEl={anchorEl}
           open={menuRowId === row.id}
           onClose={handleMenuClose}
         >
+          <MenuItem onClick={handleMenuClose}>View</MenuItem>
           <MenuItem onClick={handleMenuClose}>Edit</MenuItem>
           <MenuItem onClick={handleMenuClose}>Delete</MenuItem>
         </Menu>
@@ -95,7 +112,7 @@ function ItemRow({
   );
 }
 
-export default function ItemPage() {
+export default function QuotationList() {
   const [rows, setRows] = React.useState(rowsData);
   const [selected, setSelected] = React.useState([]);
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -108,8 +125,8 @@ export default function ItemPage() {
   // Filter Logic
   const filteredRows = rows.filter(
     (row) =>
-      row.item.toLowerCase().includes(filter.toLowerCase()) ||
-      row.description.toLowerCase().includes(filter.toLowerCase())
+      row.client.toLowerCase().includes(filter.toLowerCase()) ||
+      row.number.toLowerCase().includes(filter.toLowerCase())
   );
 
   // Pagination Logic
@@ -176,7 +193,7 @@ export default function ItemPage() {
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <HomeIcon fontSize="small" />
-          <Typography variant="body1">/ Items</Typography>
+          <Typography variant="body1">/ Quotations</Typography>
         </Box>
 
         <Box sx={{ display: "flex", gap: 2 }}>
@@ -187,9 +204,10 @@ export default function ItemPage() {
             onChange={(e) => setFilter(e.target.value)}
           />
           <FormControl size="small">
-            <Select defaultValue="active">
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="inactive">Inactive</MenuItem>
+            <Select defaultValue="all">
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="sent">Sent</MenuItem>
+              <MenuItem value="expired">Expired</MenuItem>
             </Select>
           </FormControl>
           <Button
@@ -200,21 +218,9 @@ export default function ItemPage() {
               color: "black",
               "&:hover": { backgroundColor: "#e0e0e0" },
             }}
-            onClick={() => navigate("/new-item")}
-          >
-            New Item
-          </Button>
-          <Button
-            variant="contained"
-            sx={{
-              textTransform: "none",
-              backgroundColor: "#f5f5f5",
-              color: "black",
-              "&:hover": { backgroundColor: "#e0e0e0" },
-            }}
             onClick={() => navigate("/new-quote")}
           >
-            Generate Quotation
+            New Quotation
           </Button>
         </Box>
       </Box>
@@ -224,7 +230,7 @@ export default function ItemPage() {
         <TableContainer>
           <Table stickyHeader>
             <TableHead>
-              <TableRow sx={{ backgroundColor: "#e0e0e0" }}>
+              <TableRow>
                 <TableCell padding="checkbox">
                   <Checkbox
                     color="primary"
@@ -238,23 +244,26 @@ export default function ItemPage() {
                     onChange={handleSelectAllClick}
                   />
                 </TableCell>
-                <TableCell>Item</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Qty</TableCell>
-                <TableCell align="center">Action</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Number</TableCell>
+                <TableCell>Client</TableCell>
+                <TableCell>Amount</TableCell>
+                <TableCell>Net Amount</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Valid Until</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {paginatedRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    No items available
+                  <TableCell colSpan={9} align="center">
+                    No quotations available
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedRows.map((row) => (
-                  <ItemRow
+                  <QuotationRow
                     key={row.id}
                     row={row}
                     isSelected={isSelected(row.id)}

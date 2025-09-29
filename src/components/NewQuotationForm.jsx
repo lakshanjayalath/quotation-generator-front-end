@@ -1,0 +1,305 @@
+import React, { useState } from "react";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Tabs,
+  Tab,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  IconButton,
+  Divider,
+  Card,
+  CardContent,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
+import HomeIcon from "@mui/icons-material/Home";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+
+export default function NewQuotationForm() {
+  const [tabValue, setTabValue] = useState(0);
+  const [items, setItems] = useState([]);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const handleAddItem = () => {
+    setItems([
+      ...items,
+      { item: "", description: "", unitCost: "", quantity: "", lineTotal: "" },
+    ]);
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const updatedItems = [...items];
+    updatedItems[index][field] = value;
+
+    if (field === "unitCost" || field === "quantity") {
+      const unitCost = parseFloat(updatedItems[index].unitCost) || 0;
+      const quantity = parseFloat(updatedItems[index].quantity) || 0;
+      updatedItems[index].lineTotal = unitCost * quantity;
+    }
+
+    setItems(updatedItems);
+  };
+
+  const handleDeleteItem = (index) => {
+    const updatedItems = items.filter((_, i) => i !== index);
+    setItems(updatedItems);
+  };
+
+  return (
+    <Box sx={{ maxWidth: "1400px", mx: "auto", pb: 5 }}>
+      {/* Breadcrumb */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+        <HomeIcon fontSize="small" />
+        <Typography variant="body2" color="text.secondary">
+          / Quotes / New Quote
+        </Typography>
+      </Box>
+
+      {/* Title */}
+      <Typography variant="h5" fontWeight="bold" gutterBottom>
+        Create New Quotation
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Fill in the details below to generate a new quotation.
+      </Typography>
+
+      {/* Tabs */}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs
+          value={tabValue}
+          onChange={(e, newValue) => setTabValue(newValue)}
+          indicatorColor="primary"
+          textColor="primary"
+          variant={isMobile ? "scrollable" : "standard"}
+          scrollButtons={isMobile ? "auto" : false}
+        >
+          <Tab label="Create" />
+          <Tab label="Documents" />
+          <Tab label="Settings" />
+        </Tabs>
+      </Paper>
+
+      {/* Form Section */}
+      {tabValue === 0 && (
+        <Box>
+          <Grid container spacing={2}>
+            {/* Client */}
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
+                <CardContent>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    Client
+                  </Typography>
+                  <FormControl fullWidth>
+                    <InputLabel>Select Client</InputLabel>
+                    <Select defaultValue="">
+                      <MenuItem value="client1">Client 1</MenuItem>
+                      <MenuItem value="client2">Client 2</MenuItem>
+                    </Select>
+                  </FormControl>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Quote Info */}
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
+                <CardContent>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    Quote Info
+                  </Typography>
+                  <TextField
+                    label="Quote Date"
+                    type="date"
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ mb: 2 }}
+                  />
+                  <TextField
+                    label="Valid Until"
+                    type="date"
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ mb: 2 }}
+                  />
+                  <TextField label="Partial/Deposit" fullWidth type="number" />
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Quote Metadata */}
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
+                <CardContent>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    Metadata
+                  </Typography>
+                  <TextField label="Quote #" fullWidth sx={{ mb: 2 }} />
+                  <TextField label="PO #" fullWidth sx={{ mb: 2 }} />
+                  <FormControl fullWidth>
+                    <InputLabel>Discount</InputLabel>
+                    <Select defaultValue="amount">
+                      <MenuItem value="amount">Amount</MenuItem>
+                      <MenuItem value="percentage">Percentage</MenuItem>
+                    </Select>
+                  </FormControl>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Products Section */}
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+              Products
+            </Typography>
+            <Paper
+              sx={{
+                borderRadius: 2,
+                overflow: "hidden",
+                width: "100%",
+                overflowX: "auto",
+              }}
+            >
+              <Table size="small">
+                <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                  <TableRow>
+                    <TableCell>Item</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Unit Cost</TableCell>
+                    <TableCell>Quantity</TableCell>
+                    <TableCell>Line Total</TableCell>
+                    <TableCell align="center">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {items.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                        No items added yet
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    items.map((row, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <TextField
+                            placeholder="Item"
+                            value={row.item}
+                            onChange={(e) =>
+                              handleItemChange(index, "item", e.target.value)
+                            }
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            placeholder="Description"
+                            value={row.description}
+                            onChange={(e) =>
+                              handleItemChange(
+                                index,
+                                "description",
+                                e.target.value
+                              )
+                            }
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            placeholder="Unit Cost"
+                            type="number"
+                            value={row.unitCost}
+                            onChange={(e) =>
+                              handleItemChange(
+                                index,
+                                "unitCost",
+                                e.target.value
+                              )
+                            }
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            placeholder="Quantity"
+                            type="number"
+                            value={row.quantity}
+                            onChange={(e) =>
+                              handleItemChange(
+                                index,
+                                "quantity",
+                                e.target.value
+                              )
+                            }
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography fontWeight="bold">
+                            {row.lineTotal}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            color="error"
+                            onClick={() => handleDeleteItem(index)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              <Divider />
+              <Box sx={{ p: 2, textAlign: "center" }}>
+                <Button
+                  variant="contained"
+                  sx={{
+                    textTransform: "none",
+                    backgroundColor: "#f5f5f5",
+                    color: "black",
+                    "&:hover": { backgroundColor: "#e0e0e0" },
+                  }}
+                  startIcon={<AddIcon />}
+                  onClick={handleAddItem}
+                >
+                  Add Product
+                </Button>
+              </Box>
+            </Paper>
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
+}
