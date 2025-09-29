@@ -3,7 +3,7 @@ import NewItemForm from './components/NewItemForm';
 import ItemPage from './components/ItemPage';
 import ClientPage from './components/ClientPage';
 import NewClientForm from './components/NewClientForm';
-import Dashboard from './pages/Dashboard'; 
+import Dashboard from './pages/Dashboard'; // ✅ match folder casing
 
 function App() {
   return (
