@@ -1,27 +1,23 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import NewItemForm from './components/NewItemForm'
-import ItemPage from './components/ItemPage'
-import LoginPage from './pages/LoginPage'
-import RegisterForm from './pages/RegisterForm'
-
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import NewItemForm from './components/NewItemForm';
+import ItemPage from './components/ItemPage';
+import ClientPage from './components/ClientPage';
+import NewClientForm from './components/NewClientForm';
+import Dashboard from './pages/Dashboard'; // ✅ match folder casing
 
 function App() {
-
   return (
     <BrowserRouter>
-
-      <div>
-        <Routes>
-          <Route path='/' element={<h1>Home Page</h1>} />
-          <Route path='/register' element={<RegisterForm />} />
-          <Route path='/login' element={<LoginPage />} />
-          <Route path='/items' element={<ItemPage />} />
-          <Route path='/new-item' element={<NewItemForm />} />
-        </Routes>
-      </div>
-
+      <Routes>
+        <Route path='/' element={<h1>Home Page</h1>} />
+        <Route path='/dashboard' element={<Dashboard />} />
+        <Route path='/items' element={<ItemPage />} />
+        <Route path='/new-item' element={<NewItemForm />} />
+        <Route path='/clientpage' element={<ClientPage />} />
+        <Route path='/new-client' element={<NewClientForm />} />
+      </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
