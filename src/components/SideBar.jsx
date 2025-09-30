@@ -11,6 +11,7 @@ import {
   Divider,
   Box,
 } from "@mui/material";
+
 import HomeIcon from "@mui/icons-material/Home";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import InventoryIcon from "@mui/icons-material/Inventory";
@@ -30,6 +31,7 @@ import DragHandleIcon from "@mui/icons-material/DragHandle";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 
+// --- Menu Definitions ---
 const topMenuItems = [
   { label: "Dashboard", icon: <HomeIcon />, link: "/dashboard" },
   { label: "Clients", icon: <PeopleAltIcon />, link: "/clients" },
@@ -55,15 +57,19 @@ const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
+  // Apply theme to body
   useEffect(() => {
     document.body.className = darkMode ? "dark-mode" : "light-mode";
   }, [darkMode]);
 
+  // Handlers
   const toggleSidebar = () => setCollapsed((prev) => !prev);
   const toggleTheme = () => setDarkMode((prev) => !prev);
 
+  // Colors
   const textColor = darkMode ? "#F2E8CF" : "#333";
   const bgColor = darkMode ? "#386641" : "#F2F2F2";
+  const hoverColor = darkMode ? "#4a7c59" : "#ddd";
 
   return (
     <Drawer
@@ -88,12 +94,14 @@ const Sidebar = () => {
     >
       {/* --- Top Section --- */}
       <Box>
+        {/* Collapse Button */}
         <Tooltip title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"} placement="right">
           <IconButton sx={{ margin: "10px", color: textColor }} onClick={toggleSidebar}>
             <DragHandleIcon />
           </IconButton>
         </Tooltip>
 
+        {/* Main Menu */}
         <List>
           {topMenuItems.map((item, index) => (
             <Tooltip key={index} title={collapsed ? item.label : ""} placement="right" arrow>
@@ -103,13 +111,13 @@ const Sidebar = () => {
                 to={item.link}
                 sx={{
                   padding: collapsed ? "10px 0" : "10px 20px",
-                  "&:hover": { backgroundColor: darkMode ? "#4a7c59" : "#ddd" },
+                  "&:hover": { backgroundColor: hoverColor },
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
                 }}
               >
-                {/* Left Icon + Label */}
+                {/* Icon + Label */}
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <ListItemIcon
                     sx={{
@@ -130,7 +138,7 @@ const Sidebar = () => {
                   )}
                 </Box>
 
-                {/* Add Icon (Skip for Dashboard) */}
+                {/* Add Button (skip Dashboard) */}
                 {!collapsed && item.label !== "Dashboard" && (
                   <IconButton
                     size="small"
@@ -151,16 +159,17 @@ const Sidebar = () => {
 
       {/* --- Bottom Section --- */}
       <Box>
-        <Divider sx={{ bgcolor: darkMode ? "#0e0e0dff" : "#ccc", marginY: 1 }} />
+        <Divider sx={{ bgcolor: darkMode ? "#0e0e0dff" : "#ccc", my: 1 }} />
 
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-around",
             alignItems: "center",
-            padding: "8px",
+            p: 1,
           }}
         >
+          {/* Bottom Menu Items */}
           {bottomMenuItems.map((item, index) => {
             const button = (
               <IconButton component={Link} to={item.link} sx={{ color: textColor }}>
@@ -176,7 +185,7 @@ const Sidebar = () => {
             );
           })}
 
-          {/* Dark/Light Mode Toggle */}
+          {/* Theme Toggle */}
           {collapsed ? (
             <Tooltip title="Toggle Theme" placement="right" arrow>
               <IconButton sx={{ color: textColor }} onClick={toggleTheme}>
