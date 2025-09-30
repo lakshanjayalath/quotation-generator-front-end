@@ -1,29 +1,60 @@
 import React from "react";
-import { AppBar, Toolbar, IconButton, Box, Typography, TextField, InputAdornment } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Box,
+  Typography,
+  TextField,
+  InputAdornment,
+} from "@mui/material";
+import { useLocation } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 
+// Map routes to page titles
+const pageTitles = {
+  "/dashboard": "Dashboard",
+  "/clients": "Clients",
+  "/products": "Products",
+  "/invoices": "Invoices",
+  "/payments": "Payments",
+  "/quates": "Quates",
+  "/vendors": "Vendors",
+  "/purchase-orders": "Purchase Orders",
+  "/transaction": "Transaction",
+  "/reports": "Reports",
+  "/settings": "Settings",
+  "/edit-profile": "Edit Profile",
+  "/help": "Help",
+  "/feedback": "Feedback",
+  "/audit-log": "Audit Log",
+};
+
 const TopBar = () => {
+  const location = useLocation();
+  const title = pageTitles[location.pathname] || "Dashboard"; // default if not mapped
+
   return (
     <AppBar
       position="static"
       sx={{
-        backgroundColor: "#D3D3D3", // ✅ light gray background
+        backgroundColor: "#D3D3D3",
         boxShadow: "none",
       }}
     >
       <Toolbar sx={{ display: "flex", justifyContent: "flex-start", gap: 2 }}>
-        {/* Dashboard + Add button */}
+        {/* Page Title + Add button */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Typography
             variant="h6"
             component="div"
-            sx={{ fontWeight: "bold", color: "black" }} // ✅ make text black for contrast
+            sx={{ fontWeight: "bold", color: "black" }}
           >
-            Dashboard
+            {title}
           </Typography>
           <IconButton>
-            <AddCircleIcon sx={{ color: "black" }} /> {/* ✅ icon also black */}
+            <AddCircleIcon sx={{ color: "black" }} />
           </IconButton>
         </Box>
 
@@ -33,7 +64,7 @@ const TopBar = () => {
           size="small"
           placeholder="Search..."
           sx={{
-            bgcolor: "#D3D3D3", // ✅ match the AppBar background
+            bgcolor: "#D3D3D3",
             borderRadius: 2,
             minWidth: 200,
             "& .MuiOutlinedInput-root": {
