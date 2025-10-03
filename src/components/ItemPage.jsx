@@ -27,7 +27,7 @@ function createData(id, item, description, price, qty) {
 }
 
 const rowsData = [
-  createData(1, "Wireless Mouse", "Ergonomic Bluetooth mouse", "2500 LKR", 12),
+  createData(1, "Wireless Mouse", "Ergonomic Bluetooth mouse", "3500 LKR", 12),
   createData(2, "Mechanical Keyboard", "RGB backlit keyboard", "12,500 LKR", 8),
   createData(3, "Laptop Stand", "Adjustable aluminum stand", "4500 LKR", 20),
   createData(4, "USB-C Hub", "Multi-port adapter", "3500 LKR", 15),
