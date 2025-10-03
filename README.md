@@ -1,12 +1,121 @@
-# React + Vite
+# Quotation Generator Front-End
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Quotation Generator Front-End is a modern React application for managing clients, products, quotations, and related business activities. Built with [Vite](https://vitejs.dev/) for fast development and [Material UI](https://mui.com/) for a professional look, it provides a dashboard, forms, tables, and charts for efficient business operations.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Dashboard**: Overview of recent transactions, activities, payments, and sales chart.
+- **Clients Management**: Add, edit, and view clients with detailed forms and tables.
+- **Products Management**: Manage inventory items, add/edit products, and generate quotations.
+- **Quotation Generation**: Create, view, and manage quotations with customizable forms and product lists.
+- **Authentication Pages**: Includes login and registration forms.
+- **Responsive UI**: Optimized for desktop and mobile devices.
+- **Sidebar & TopBar**: Easy navigation with collapsible sidebar and contextual top bar.
+- **Material UI Components**: Professional tables, forms, cards, and charts.
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```
+quotation-generator-front-end/
+├── public/
+│   └── vite.svg
+├── src/
+│   ├── App.jsx
+│   ├── App.css
+│   ├── index.css
+│   ├── main.jsx
+│   ├── assets/
+│   │   └── react.svg
+│   ├── components/
+│   │   ├── ClientPage.jsx
+│   │   ├── ItemPage.jsx
+│   │   ├── NewClientForm.jsx
+│   │   ├── NewItemForm.jsx
+│   │   ├── NewQuotationForm.jsx
+│   │   ├── Overview.jsx
+│   │   ├── QuotationList.jsx
+│   │   ├── RecentActivity.jsx
+│   │   ├── RecentPayment.jsx
+│   │   ├── RecentTransaction.jsx
+│   │   ├── SideBar.jsx
+│   │   └── TopBar.jsx
+│   └── pages/
+│       ├── Dashboard.jsx
+│       ├── LandingPage.jsx
+│       ├── LoginPage.jsx
+│       └── RegisterForm.jsx
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package.json
+├── README.md
+└── vite.config.js
+```
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18+ recommended)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+
+### Installation
+
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/yourusername/quotation-generator-front-end.git
+   cd quotation-generator-front-end
+   ```
+
+2. Install dependencies:
+   ```sh
+   npm install
+   # or
+   yarn install
+   ```
+
+### Development
+
+Start the development server:
+```sh
+npm run dev
+# or
+yarn dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Build
+
+To build for production:
+```sh
+npm run build
+# or
+yarn build
+```
+
+### Lint
+
+To run ESLint:
+```sh
+npm run lint
+# or
+yarn lint
+```
+
+## Technologies Used
+
+- [React](https://react.dev/)
+- [Vite](https://vitejs.dev/)
+- [Material UI](https://mui.com/)
+- [React Router](https://reactrouter.com/)
+- [Recharts](https://recharts.org/)
+- [Axios](https://axios-http.com/)
+
+
+## License
+
+This project is licensed under the MIT License.
+
+---
+
+For more details, see the source code in [src/](src).
