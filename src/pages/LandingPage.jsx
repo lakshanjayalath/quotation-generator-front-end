@@ -1,191 +1,313 @@
 import React from "react";
 import {
-  AppBar,
-  Toolbar,
-  Button,
-  Typography,
-  Container,
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  Avatar,
+    AppBar,
+    Toolbar,
+    Button,
+    Typography,
+    Container,
+    Box,
+    Grid,
+    Card,
+    CardContent,
+    Avatar,
+    Paper,
 } from "@mui/material";
 import { CheckCircle, Speed, Security, Devices } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
-const LandingPage = () => {
-  return (
-    <Box>
-      {/* ✅ Navbar */}
-      <AppBar position="static" color="primary" sx={{ background: "#1E40AF" }}>
-        <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-            QuoteGenius
-          </Typography>
-          <Box>
-            <Button color="inherit">Features</Button>
-            <Button color="inherit">How It Works</Button>
-            <Button color="inherit">Pricing</Button>
-            <Button color="inherit">Contact</Button>
-            <Button
-              variant="contained"
-              sx={{ ml: 2, bgcolor: "#2563EB" }}
-            >
-              Get Started
-            </Button>
-          </Box>
-        </Toolbar>
-      </AppBar>
+export default function LandingPage() {
 
-      {/* ✅ Hero Section */}
-      <Container sx={{ py: 8, textAlign: "center" }}>
-        <Typography variant="h3" fontWeight="bold" gutterBottom>
-          Create Professional Quotes in Minutes
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-          Streamline your quotation process with our intuitive, powerful
-          generation tool designed for modern businesses.
-        </Typography>
-        <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
-          <Button variant="contained" size="large">
-            Start Free Trial
-          </Button>
-          <Button variant="outlined" size="large">
-            Watch Demo
-          </Button>
-        </Box>
-        {/* Hero Image */}
-        <Box sx={{ mt: 5 }}>
-          <img
-            src="https://via.placeholder.com/600x300"
-            alt="Hero Demo"
-            style={{ borderRadius: 12, maxWidth: "100%" }}
-          />
-        </Box>
-      </Container>
+    const navigate = useNavigate();
 
-      {/* ✅ Features Section */}
-      <Container sx={{ py: 8 }}>
-        <Typography
-          variant="h4"
-          align="center"
-          fontWeight="bold"
-          gutterBottom
-        >
-          Everything You Need for Efficient Quote Generation
-        </Typography>
-        <Grid container spacing={4} sx={{ mt: 2 }}>
-          {[
-            { icon: <Speed />, title: "Lightning Fast", desc: "Create quotes in minutes with our fast workflow." },
-            { icon: <CheckCircle />, title: "Smart Templates", desc: "Choose from industry templates or customize your own." },
-            { icon: <Security />, title: "Enterprise Security", desc: "Secure data with advanced encryption." },
-            { icon: <Devices />, title: "Cross-Platform", desc: "Access from desktop, tablet, or mobile." },
-          ].map((feature, i) => (
-            <Grid item xs={12} sm={6} md={3} key={i}>
-              <Card
+    return (
+        <Box sx={{ bgcolor: "#F9FAFB", minHeight: "100vh" }}>
+            {/* 🌟 Navbar */}
+            <AppBar
+                position="fixed"
+                elevation={0}
                 sx={{
-                  height: "100%",
-                  textAlign: "center",
-                  borderRadius: 3,
-                  p: 2,
+                    background: "rgba(255,255,255,0.8)",
+                    backdropFilter: "blur(10px)",
+                    color: "#1E3A8A",
                 }}
-              >
-                <CardContent>
-                  <Avatar sx={{ bgcolor: "#2563EB", mx: "auto", mb: 2 }}>
-                    {feature.icon}
-                  </Avatar>
-                  <Typography variant="h6" fontWeight="bold">
-                    {feature.title}
-                  </Typography>
-                  <Typography color="text.secondary">{feature.desc}</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+            >
+                <Toolbar sx={{ justifyContent: "space-between", py: 1 }}>
+                    <Typography variant="h6" fontWeight="bold">
+                        QuoteGenius
+                    </Typography>
+                    <Box>
+                        {["Features", "How It Works", "Pricing", "Contact"].map((item) => (
+                            <Button key={item} color="inherit" sx={{ mx: 1, fontWeight: 500 }}>
+                                {item}
+                            </Button>
+                        ))}
+                        <Button
+                            variant="contained"
+                            sx={{
+                                ml: 2,
+                                bgcolor: "#2563EB",
+                                px: 3,
+                                borderRadius: 2,
+                                "&:hover": { bgcolor: "#1E40AF" },
+                            }}
+                            onClick={() => navigate("/register")}
+                        >
+                            Get Started
+                        </Button>
+                    </Box>
+                </Toolbar>
+            </AppBar>
+            {/* 🌅 Hero Section */}
+            <Container
+                maxWidth="lg"
+                sx={{
+                    pt: 16,
+                    pb: 10,
+                    display: "flex",
+                    flexDirection: { xs: "column", md: "row" }, // column on mobile, row on desktop
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 4,
+                }}
+            >
+                {/* Left Column: Text + Buttons */}
+                <Box
+                    sx={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 3,
+                        textAlign: { xs: "center", md: "left" },
+                    }}
+                >
+                    <Typography
+                        variant="h3"
+                        fontWeight="bold"
+                        sx={{
+                            background: "linear-gradient(90deg, #2563EB, #1E40AF)",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                        }}
+                    >
+                        Create Professional Quotes Effortlessly
+                    </Typography>
 
-      {/* ✅ How It Works Section */}
-      <Container sx={{ py: 8 }}>
-        <Typography
-          variant="h4"
-          align="center"
-          fontWeight="bold"
-          gutterBottom
-        >
-          Create Quotes in Four Simple Steps
-        </Typography>
-        <Grid container spacing={6} sx={{ mt: 3 }}>
-          {[
-            { step: "1", title: "Select a Template", img: "https://via.placeholder.com/400x250" },
-            { step: "2", title: "Customize Your Quote", img: "https://via.placeholder.com/400x250" },
-            { step: "3", title: "Review and Approve", img: "https://via.placeholder.com/400x250" },
-            { step: "4", title: "Send and Track", img: "https://via.placeholder.com/400x250" },
-          ].map((s, i) => (
-            <Grid item xs={12} md={6} key={i}>
-              <Box sx={{ textAlign: "center" }}>
-                <img
-                  src={s.img}
-                  alt={s.title}
-                  style={{ borderRadius: 12, maxWidth: "100%" }}
-                />
-                <Typography variant="h5" fontWeight="bold" sx={{ mt: 2 }}>
-                  {s.step}. {s.title}
+                    <Typography
+                        variant="h6"
+                        color="text.secondary"
+                        sx={{ maxWidth: 700 }}
+                    >
+                        Speed up your sales process with beautiful, accurate quotes that impress your clients —
+                        in just minutes.
+                    </Typography>
+
+                    <Box
+                        sx={{
+                            display: "flex",
+                            gap: 2,
+                            flexWrap: "wrap",
+                            justifyContent: { xs: "center", md: "flex-start" },
+                        }}
+                    >
+                        <Button
+                            variant="contained"
+                            size="large"
+                            sx={{
+                                px: 4,
+                                py: 1.2,
+                                borderRadius: 3,
+                                fontWeight: "bold",
+                                bgcolor: "#2563EB",
+                                "&:hover": { bgcolor: "#1E40AF" },
+                            }}
+                        >
+                            Start Free Trial
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            size="large"
+                            sx={{
+                                px: 4,
+                                py: 1.2,
+                                borderRadius: 3,
+                                fontWeight: "bold",
+                                borderColor: "#2563EB",
+                                color: "#2563EB",
+                                "&:hover": { borderColor: "#1E40AF", color: "#1E40AF" },
+                            }}
+                            onClick={() => navigate("/dashboard")}
+                        >
+                            Watch Demo
+                        </Button>
+                    </Box>
+                </Box>
+
+                {/* Right Column: Image */}
+                <Box
+                    sx={{
+                        flex: 1,
+                        display: "flex",
+                        justifyContent: "center",
+                        mt: { xs: 6, md: 0 },
+                    }}
+                >
+                    <Paper
+                        elevation={4}
+                        sx={{
+                            borderRadius: 4,
+                            overflow: "hidden",
+                            maxWidth: 800,
+                            width: "100%",
+                        }}
+                    >
+                        <img
+                            src="../public/hero-img.jpg"
+                            alt="QuoteGenius demo"
+                            style={{ width: "100%", display: "block" }}
+                        />
+                    </Paper>
+                </Box>
+            </Container>
+            {/* ⚡ Features Section */}
+            <Container sx={{ py: 12 }}>
+                {/* Section Header */}
+                <Box sx={{ textAlign: "center", mb: 10 }}>
+                    <Typography
+                        variant="h4"
+                        fontWeight="bold"
+                        gutterBottom
+                        sx={{ letterSpacing: 0.5 }}
+                    >
+                        Powerful Features Built for Speed
+                    </Typography>
+                    <Typography
+                        variant="body1"
+                        color="text.secondary"
+                        sx={{ maxWidth: 600, mx: "auto", fontSize: { xs: 15, md: 16 } }}
+                    >
+                        Everything you need to create, send, and track professional quotes — effortlessly.
+                    </Typography>
+                </Box>
+
+                {/* Features Grid */}
+                <Grid
+                    container
+                    spacing={{ xs: 4, md: 6 }}
+                    justifyContent="center" // ✅ Centers the cards horizontally
+                    alignItems="stretch" // ✅ Makes all cards equal height
+                >
+                    {[
+                        {
+                            icon: <Speed fontSize="large" />,
+                            title: "Lightning Fast",
+                            desc: "Generate quotes in minutes with smart automation.",
+                        },
+                        // {
+                        //     icon: <CheckCircle fontSize="large" />,
+                        //     title: "Smart Templates",
+                        //     desc: "Pick templates or design your own in seconds.",
+                        // },
+                        {
+                            icon: <Security fontSize="large" />,
+                            title: "Enterprise Security",
+                            desc: "Your data is encrypted and securely stored.",
+                        },
+                        {
+                            icon: <Devices fontSize="large" />,
+                            title: "Cross-Platform",
+                            desc: "Access anywhere — desktop, tablet, or mobile.",
+                        },
+                    ].map((feature, i) => (
+                        <Grid item xs={12} sm={6} md={3} key={i} sx={{ display: "flex", justifyContent: "center" }}>
+                            <Card
+                                sx={{
+                                    p: 4,
+                                    borderRadius: 3,
+                                    textAlign: "center",
+                                    boxShadow: "0 4px 15px rgba(0,0,0,0.05)",
+                                    transition: "all 0.4s ease",
+                                    height: "100%",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "flex-start",
+                                    bgcolor: "background.paper",
+                                    cursor: "pointer",
+                                    maxWidth: 300, // ✅ Keeps consistent card width when centered
+                                    "&:hover": {
+                                        transform: "translateY(-10px)",
+                                        background: "linear-gradient(135deg, #2563EB, #1E40AF)",
+                                        color: "white",
+                                        boxShadow: "0 12px 25px rgba(0,0,0,0.15)",
+                                        "& .MuiTypography-root": { color: "white" },
+                                    },
+                                }}
+                            >
+                                <Avatar
+                                    sx={{
+                                        bgcolor: "#2563EB",
+                                        width: 64,
+                                        height: 64,
+                                        mb: 3,
+                                        fontSize: 32,
+                                        transition: "all 0.4s ease",
+                                        "&:hover": {
+                                            transform: "scale(1.1)",
+                                            bgcolor: "rgba(255,255,255,0.2)",
+                                        },
+                                    }}
+                                >
+                                    {feature.icon}
+                                </Avatar>
+                                <Typography
+                                    variant="h6"
+                                    fontWeight="bold"
+                                    sx={{ mb: 1.5, fontSize: { xs: 16, md: 18 } }}
+                                >
+                                    {feature.title}
+                                </Typography>
+                                <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ fontSize: { xs: 14, md: 15 } }}
+                                >
+                                    {feature.desc}
+                                </Typography>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
+            </Container>
+
+            {/* 🚀 CTA Section */}
+            <Box
+                sx={{
+                    py: 8,
+                    textAlign: "center",
+                    background: "linear-gradient(90deg, #2563EB, #1E40AF)",
+                    color: "white",
+                }}
+            >
+                <Typography variant="h5" fontWeight="bold" gutterBottom>
+                    Join 2,000+ businesses already using QuoteGenius
                 </Typography>
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+                <Button
+                    variant="contained"
+                    sx={{
+                        mt: 2,
+                        bgcolor: "white",
+                        color: "#2563EB",
+                        fontWeight: "bold",
+                        px: 4,
+                        py: 1.2,
+                        borderRadius: 3,
+                        "&:hover": { bgcolor: "#F3F4F6" },
+                    }}
+                >
+                    Start Free Trial
+                </Button>
+            </Box>
 
-      {/* ✅ Testimonials */}
-      <Container sx={{ py: 8, textAlign: "center" }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Trusted by Businesses Everywhere
-        </Typography>
-        <Grid container spacing={4} sx={{ mt: 2 }}>
-          {[
-            { name: "Sarah Johnson", text: "QuoteGenius transformed our sales process!" },
-            { name: "Michael Chen", text: "Super fast, easy to use, and professional." },
-            { name: "Emily Rodriguez", text: "Clients love how professional our quotes look." },
-          ].map((t, i) => (
-            <Grid item xs={12} md={4} key={i}>
-              <Card sx={{ borderRadius: 3, p: 2 }}>
-                <CardContent>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    "{t.text}"
-                  </Typography>
-                  <Typography variant="subtitle2" fontWeight="bold">
-                    – {t.name}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-
-      {/* ✅ CTA Banner */}
-      <Box sx={{ py: 6, bgcolor: "#2563EB", color: "white", textAlign: "center" }}>
-        <Typography variant="h5" fontWeight="bold">
-          Join 2,000+ businesses that trust QuoteGenius
-        </Typography>
-        <Button
-          variant="contained"
-          sx={{ mt: 2, bgcolor: "white", color: "#2563EB", fontWeight: "bold" }}
-        >
-          Start Free Trial
-        </Button>
-      </Box>
-
-      {/* ✅ Footer */}
-      <Box sx={{ py: 4, bgcolor: "#111827", color: "white", textAlign: "center" }}>
-        <Typography variant="body2">
-          © 2025 QuoteGenius. All rights reserved.
-        </Typography>
-      </Box>
-    </Box>
-  );
+        </Box>
+    );
 };
-
-export default LandingPage;

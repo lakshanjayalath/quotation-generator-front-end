@@ -105,7 +105,7 @@ export default function LoginPage() {
         {/* Register Link */}
         <Typography variant="body2" align="center" sx={{ mt: 3 }}>
           Don’t have an account?{" "}
-          <Link href="#" underline="hover">
+          <Link href="/register" underline="hover">
             Register
           </Link>
         </Typography>

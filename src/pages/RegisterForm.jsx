@@ -154,6 +154,14 @@ export default function RegisterPage() {
             Register Now
           </Button>
         </form>
+        <Box textAlign="center" mt={2}>
+          <Typography variant="body2">
+            Already have an account?{" "}
+            <Link href="/login" underline="hover">
+              Sign In
+            </Link>
+          </Typography>
+        </Box>
       </Box>
     </Box>
   );
