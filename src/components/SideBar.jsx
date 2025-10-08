@@ -34,16 +34,16 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 // --- Menu Definitions ---
 const topMenuItems = [
   { label: "Dashboard", icon: <HomeIcon />, link: "/dashboard" },
-  { label: "Clients", icon: <PeopleAltIcon />, link: "/clients" },
-  { label: "Products", icon: <InventoryIcon />, link: "/products" },
-  { label: "Invoices", icon: <PaymentsIcon />, link: "/invoices" },
-  { label: "Payments", icon: <PaidIcon />, link: "/payments" },
-  { label: "Quates", icon: <WidgetsIcon />, link: "/quates" },
-  { label: "Vendors", icon: <StoreIcon />, link: "/vendors" },
-  { label: "Purchase Orders", icon: <ShoppingCartIcon />, link: "/purchase-orders" },
-  { label: "Transaction", icon: <PaidIcon />, link: "/transaction" },
-  { label: "Reports", icon: <SummarizeIcon />, link: "/reports" },
-  { label: "Settings", icon: <SettingsIcon />, link: "/settings" },
+  { label: "Clients", icon: <PeopleAltIcon />, link: "/dashboard/clients" },
+  { label: "Products", icon: <InventoryIcon />, link: "/dashboard/products" },
+  { label: "Invoices", icon: <PaymentsIcon />, link: "/dashboard/invoices" },
+  { label: "Payments", icon: <PaidIcon />, link: "/dashboard/payments" },
+  { label: "Quotes", icon: <WidgetsIcon />, link: "/dashboard/quates" },
+  { label: "Vendors", icon: <StoreIcon />, link: "/dashboard/vendors" },
+  { label: "Purchase Orders", icon: <ShoppingCartIcon />, link: "/dashboard/purchase-orders" },
+  { label: "Transaction", icon: <PaidIcon />, link: "/dashboard/transaction" },
+  { label: "Reports", icon: <SummarizeIcon />, link: "/dashboard/reports" },
+  { label: "Settings", icon: <SettingsIcon />, link: "/dashboard/settings" },
 ];
 
 const bottomMenuItems = [
@@ -67,9 +67,9 @@ const Sidebar = () => {
   const toggleTheme = () => setDarkMode((prev) => !prev);
 
   // Colors
-  const textColor = darkMode ? "#F2E8CF" : "#333";
-  const bgColor = darkMode ? "#386641" : "#F2F2F2";
-  const hoverColor = darkMode ? "#4a7c59" : "#ddd";
+  const textColor = darkMode ? "#333" : "#F2E8CF";
+  const bgColor = darkMode ? "#F2F2F2" : "#386641";
+  const hoverColor = darkMode ? "#4a7c59" : "#4a7c59";
 
   return (
     <Drawer
@@ -189,12 +189,12 @@ const Sidebar = () => {
           {collapsed ? (
             <Tooltip title="Toggle Theme" placement="right" arrow>
               <IconButton sx={{ color: textColor }} onClick={toggleTheme}>
-                {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
+                {darkMode ? <DarkModeIcon /> : <LightModeIcon />}
               </IconButton>
             </Tooltip>
           ) : (
             <IconButton sx={{ color: textColor }} onClick={toggleTheme}>
-              {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
+              {darkMode ? <DarkModeIcon /> : <LightModeIcon />}
             </IconButton>
           )}
         </Box>
