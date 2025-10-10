@@ -171,7 +171,7 @@ export default function ClientPage() {
           <Button
             variant="contained"
             sx={{ textTransform: "none", backgroundColor: "#f5f5f5", color: "black", "&:hover": { backgroundColor: "#e0e0e0" } }}
-            onClick={() => navigate("/new-client")}
+            onClick={() => navigate("/dashboard/new-client")}
           >
             New Client
           </Button>

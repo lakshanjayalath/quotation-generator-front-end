@@ -144,10 +144,10 @@ export default function NewClientForm({ initialData = null, onSave }) {
             {initialData ? "Edit Client" : "New Client"}
           </Typography>
           <Box>
-            <Button variant="outlined" onClick={() => navigate(-1)} sx={{ mr: 2 }}>
+            <Button variant="outlined" onClick={() => navigate(-1)} sx={{ mr: 2, borderColor: "#4a7c59", color: "#4a7c59" }}>
               Cancel
             </Button>
-            <Button variant="contained" onClick={handleSave} sx={{ bgcolor: "#9e9e9e", "&:hover": { bgcolor: "#757575" } }}>
+            <Button variant="contained" onClick={handleSave} sx={{ bgcolor: "#4a7c59", "&:hover": { bgcolor: "#386641" } }}>
               Save
             </Button>
           </Box>
@@ -198,7 +198,7 @@ export default function NewClientForm({ initialData = null, onSave }) {
             />
           </Paper>
         ))}
-        <Button variant="outlined" onClick={addContact}>+ Add Contact</Button>
+        <Button variant="outlined" onClick={addContact} sx={{ mr: 2, borderColor: "#4a7c59", color: "#4a7c59" }}>+ Add Contact</Button>
 
         <Divider sx={{ my: 3 }} />
 
@@ -236,7 +236,7 @@ export default function NewClientForm({ initialData = null, onSave }) {
             </TextField>
           </Box>
         )}
-        <Button variant="outlined" onClick={copyBillingToShipping} sx={{ mt: 2 }}>Copy Billing</Button>
+        <Button variant="outlined" onClick={copyBillingToShipping} sx={{ mt: 2, borderColor: "#4a7c59", color: "#4a7c59" }}>Copy Billing</Button>
       </Paper>
 
       {/* Success Snackbar */}

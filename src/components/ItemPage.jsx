@@ -200,7 +200,7 @@ export default function ItemPage() {
               color: "black",
               "&:hover": { backgroundColor: "#e0e0e0" },
             }}
-            onClick={() => navigate("/new-item")}
+            onClick={() => navigate("/dashboard/new-item")}
           >
             New Item
           </Button>
@@ -212,7 +212,7 @@ export default function ItemPage() {
               color: "black",
               "&:hover": { backgroundColor: "#e0e0e0" },
             }}
-            onClick={() => navigate("/new-quote")}
+            onClick={() => navigate("/dashboard/new-quote")}
           >
             Generate Quotation
           </Button>

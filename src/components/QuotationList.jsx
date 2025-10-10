@@ -218,7 +218,7 @@ export default function QuotationList() {
               color: "black",
               "&:hover": { backgroundColor: "#e0e0e0" },
             }}
-            onClick={() => navigate("/new-quote")}
+            onClick={() => navigate("/dashboard/new-quote")}
           >
             New Quotation
           </Button>

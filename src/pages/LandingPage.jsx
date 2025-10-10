@@ -28,7 +28,7 @@ export default function LandingPage() {
                 sx={{
                     background: "rgba(255,255,255,0.8)",
                     backdropFilter: "blur(10px)",
-                    color: "#1E3A8A",
+                    color: "#386641",
                 }}
             >
                 <Toolbar sx={{ justifyContent: "space-between", py: 1 }}>
@@ -45,10 +45,10 @@ export default function LandingPage() {
                             variant="contained"
                             sx={{
                                 ml: 2,
-                                bgcolor: "#2563EB",
+                                bgcolor: "#4a7c59",
                                 px: 3,
                                 borderRadius: 2,
-                                "&:hover": { bgcolor: "#1E40AF" },
+                                "&:hover": { bgcolor: "#386641" },
                             }}
                             onClick={() => navigate("/register")}
                         >
@@ -84,7 +84,7 @@ export default function LandingPage() {
                         variant="h3"
                         fontWeight="bold"
                         sx={{
-                            background: "linear-gradient(90deg, #2563EB, #1E40AF)",
+                            background: "linear-gradient(90deg, #4a7c59, #386641)",
                             WebkitBackgroundClip: "text",
                             WebkitTextFillColor: "transparent",
                         }}
@@ -117,8 +117,8 @@ export default function LandingPage() {
                                 py: 1.2,
                                 borderRadius: 3,
                                 fontWeight: "bold",
-                                bgcolor: "#2563EB",
-                                "&:hover": { bgcolor: "#1E40AF" },
+                                bgcolor: "#4a7c59",
+                                "&:hover": { bgcolor: "#386641" },
                             }}
                         >
                             Start Free Trial
@@ -131,9 +131,9 @@ export default function LandingPage() {
                                 py: 1.2,
                                 borderRadius: 3,
                                 fontWeight: "bold",
-                                borderColor: "#2563EB",
-                                color: "#2563EB",
-                                "&:hover": { borderColor: "#1E40AF", color: "#1E40AF" },
+                                borderColor: "#4a7c59",
+                                color: "#4a7c59",
+                                "&:hover": { borderColor: "#386641", color: "#386641" },
                             }}
                             onClick={() => navigate("/dashboard")}
                         >
@@ -236,7 +236,7 @@ export default function LandingPage() {
                                     maxWidth: 300, // ✅ Keeps consistent card width when centered
                                     "&:hover": {
                                         transform: "translateY(-10px)",
-                                        background: "linear-gradient(135deg, #2563EB, #1E40AF)",
+                                        background: "linear-gradient(135deg, #4a7c59, #386641)",
                                         color: "white",
                                         boxShadow: "0 12px 25px rgba(0,0,0,0.15)",
                                         "& .MuiTypography-root": { color: "white" },
@@ -245,7 +245,7 @@ export default function LandingPage() {
                             >
                                 <Avatar
                                     sx={{
-                                        bgcolor: "#2563EB",
+                                        bgcolor: "#4a7c59",
                                         width: 64,
                                         height: 64,
                                         mb: 3,
@@ -284,7 +284,7 @@ export default function LandingPage() {
                 sx={{
                     py: 8,
                     textAlign: "center",
-                    background: "linear-gradient(90deg, #2563EB, #1E40AF)",
+                    background: "linear-gradient(90deg, #4a7c59, #386641)",
                     color: "white",
                 }}
             >
@@ -296,7 +296,7 @@ export default function LandingPage() {
                     sx={{
                         mt: 2,
                         bgcolor: "white",
-                        color: "#2563EB",
+                        color: "#4a7c59",
                         fontWeight: "bold",
                         px: 4,
                         py: 1.2,
