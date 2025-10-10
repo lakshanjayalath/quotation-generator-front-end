@@ -40,8 +40,8 @@ export default function Dashboard() {
             {/* These paths are relative to /dashboard */}
             <Route index element={<Overview />} />
             <Route path="clients" element={<ClientPage />} />
-            <Route path="products" element={<ItemPage />} />
-            <Route path="quates" element={<QuotationList />} />
+            <Route path="items" element={<ItemPage />} />
+            <Route path="quotes" element={<QuotationList />} />
             <Route path="new-client" element={<NewClientForm />} />
             <Route path="new-item" element={<NewItemForm />} />
             <Route path="new-quote" element={<NewQuotationForm />} />

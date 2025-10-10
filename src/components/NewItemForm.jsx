@@ -139,7 +139,7 @@ export default function NewItemForm({ initialData = null, onSave }) {
             <Button
               variant="outlined"
               onClick={() => navigate(-1)}
-              sx={{ mr: 2 }}
+              sx={{ mr: 2, borderColor: "#4a7c59", color: "#4a7c59" }}
             >
               Cancel
             </Button>
@@ -147,8 +147,8 @@ export default function NewItemForm({ initialData = null, onSave }) {
               variant="contained"
               onClick={handleSave}
               sx={{
-                bgcolor: "#9e9e9e",
-                "&:hover": { bgcolor: "#757575" },
+                bgcolor: "#4a7c59",
+                "&:hover": { bgcolor: "#386641" },
                 px: 4,
                 py: 1,
                 borderRadius: 1,
