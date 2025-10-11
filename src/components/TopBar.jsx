@@ -39,7 +39,7 @@ const TopBar = () => {
     <AppBar
       position="static"
       sx={{
-        backgroundColor: "#D3D3D3",
+        backgroundColor: "#6A994E", // updated color
         boxShadow: "none",
       }}
     >
@@ -49,12 +49,12 @@ const TopBar = () => {
           <Typography
             variant="h6"
             component="div"
-            sx={{ fontWeight: "bold", color: "black" }}
+            sx={{ fontWeight: "bold", color: "white" }} // text color changed to white for contrast
           >
             {title}
           </Typography>
           <IconButton>
-            <AddCircleIcon sx={{ color: "black" }} />
+            <AddCircleIcon sx={{ color: "white" }} /> {/* icon color updated */}
           </IconButton>
         </Box>
 
@@ -64,17 +64,28 @@ const TopBar = () => {
           size="small"
           placeholder="Search..."
           sx={{
-            bgcolor: "#D3D3D3",
+            bgcolor: "#6A994E", // search bar background matches topbar
             borderRadius: 2,
             minWidth: 200,
             "& .MuiOutlinedInput-root": {
               paddingRight: 0,
+              "& fieldset": {
+                borderColor: "white", // border color for search box
+              },
+              "&:hover fieldset": {
+                borderColor: "white",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "white",
+              },
+              color: "white",
             },
+            input: { color: "white" }, // input text color
           }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon color="action" />
+                <SearchIcon sx={{ color: "white" }} />
               </InputAdornment>
             ),
           }}
@@ -85,3 +96,4 @@ const TopBar = () => {
 };
 
 export default TopBar;
+
