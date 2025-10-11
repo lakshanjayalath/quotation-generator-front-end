@@ -1,5 +1,6 @@
-// Dashboard.jsx
-import { Routes, Route } from "react-router-dom";
+// src/pages/Dashboard.jsx
+import React from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Sidebar from "../components/SideBar";
 import TopBar from "../components/TopBar";
 import Overview from "../components/Overview";
@@ -9,9 +10,14 @@ import QuotationList from "../components/QuotationList";
 import NewClientForm from "../components/NewClientForm";
 import NewItemForm from "../components/NewItemForm";
 import NewQuotationForm from "../components/NewQuotationForm";
+import Setting from "./Setting";
 
 export default function Dashboard() {
   const topBarHeight = 64;
+  const location = useLocation();
+
+  // Remove padding only for setting page
+  const isSettingPage = location.pathname.startsWith("/dashboard/setting");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
@@ -31,13 +37,20 @@ export default function Dashboard() {
         <TopBar />
       </div>
 
-      {/* Sidebar + Content */}
+      {/* Sidebar + Main Content */}
       <div style={{ display: "flex", flex: 1, marginTop: `${topBarHeight}px` }}>
+        {/* Main Dashboard Sidebar */}
         <Sidebar />
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
+        {/* Dashboard Content Area */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: isSettingPage ? "0px" : "20px", // conditional padding
+          }}
+        >
           <Routes>
-            {/* These paths are relative to /dashboard */}
             <Route index element={<Overview />} />
             <Route path="clients" element={<ClientPage />} />
             <Route path="items" element={<ItemPage />} />
@@ -45,6 +58,9 @@ export default function Dashboard() {
             <Route path="new-client" element={<NewClientForm />} />
             <Route path="new-item" element={<NewItemForm />} />
             <Route path="new-quote" element={<NewQuotationForm />} />
+
+            {/* Settings Page */}
+            <Route path="setting/*" element={<Setting />} />
           </Routes>
         </div>
       </div>

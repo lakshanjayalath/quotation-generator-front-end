@@ -43,7 +43,7 @@ const topMenuItems = [
   // { label: "Purchase Orders", icon: <ShoppingCartIcon />, link: "/dashboard/purchase-orders" },
   // { label: "Transaction", icon: <PaidIcon />, link: "/dashboard/transaction" },
   { label: "Reports", icon: <SummarizeIcon />, link: "/dashboard/reports" },
-  { label: "Settings", icon: <SettingsIcon />, link: "/dashboard/settings" },
+  { label: "Settings", icon: <SettingsIcon />, link: "/dashboard/setting" },
 ];
 
 const bottomMenuItems = [
