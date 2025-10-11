@@ -68,6 +68,7 @@ export default function LandingPage() {
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: 4,
+                    height: "100vh"
                 }}
             >
                 {/* Left Column: Text + Buttons */}
@@ -161,7 +162,7 @@ export default function LandingPage() {
                         }}
                     >
                         <img
-                            src="../public/hero-img.jpg"
+                            src="../public/hero-image.jpg"
                             alt="QuoteGenius demo"
                             style={{ width: "100%", display: "block" }}
                         />
