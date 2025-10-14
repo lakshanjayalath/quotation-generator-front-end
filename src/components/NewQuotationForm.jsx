@@ -21,6 +21,7 @@ import {
   Divider,
   Card,
   CardContent,
+  Switch,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -31,6 +32,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 export default function NewQuotationForm() {
   const [tabValue, setTabValue] = useState(0);
   const [items, setItems] = useState([]);
+  const [inclusiveTaxes, setInclusiveTaxes] = useState(false);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -69,13 +72,7 @@ export default function NewQuotationForm() {
         </Typography>
       </Box>
 
-      {/* Title */}
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Create New Quotation
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Fill in the details below to generate a new quotation.
-      </Typography>
+      
 
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
@@ -93,7 +90,7 @@ export default function NewQuotationForm() {
         </Tabs>
       </Paper>
 
-      {/* Form Section */}
+      {/* Create Tab */}
       {tabValue === 0 && (
         <Box>
           <Grid container spacing={2}>
@@ -149,7 +146,7 @@ export default function NewQuotationForm() {
               </Card>
             </Grid>
 
-            {/* Quote Metadata */}
+            {/* Metadata */}
             <Grid item xs={12} md={4}>
               <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
                 <CardContent>
@@ -299,6 +296,61 @@ export default function NewQuotationForm() {
             </Paper>
           </Box>
         </Box>
+      )}
+
+      {/* Documents Tab */}
+      {tabValue === 1 && (
+        <Card variant="outlined" sx={{ borderRadius: 2 }}>
+          <CardContent>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Documents
+            </Typography>
+            <Typography color="text.secondary">
+              Save the record to upload documents.
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Settings Tab */}
+      {tabValue === 2 && (
+        <Card variant="outlined" sx={{ borderRadius: 2 }}>
+          <CardContent>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Settings
+            </Typography>
+
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} md={6}>
+                <TextField label="Project" fullWidth />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField label="Assigned User" fullWidth />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField label="Exchange Rate" fullWidth type="number" />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField label="Vendor" fullWidth />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField label="Design" fullWidth />
+              </Grid>
+              <Grid
+                item
+                xs={12}
+                md={6}
+                sx={{ display: "flex", alignItems: "center", gap: 2 }}
+              >
+                <Typography>Inclusive Taxes</Typography>
+                <Switch
+                  checked={inclusiveTaxes}
+                  onChange={(e) => setInclusiveTaxes(e.target.checked)}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
       )}
     </Box>
   );
