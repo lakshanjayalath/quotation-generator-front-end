@@ -37,6 +37,7 @@ export default function NewQuotationForm() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  // Add a new product row
   const handleAddItem = () => {
     setItems([
       ...items,
@@ -44,6 +45,7 @@ export default function NewQuotationForm() {
     ]);
   };
 
+  // Update field values in a product row
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...items];
     updatedItems[index][field] = value;
@@ -57,6 +59,7 @@ export default function NewQuotationForm() {
     setItems(updatedItems);
   };
 
+  // Delete a product row
   const handleDeleteItem = (index) => {
     const updatedItems = items.filter((_, i) => i !== index);
     setItems(updatedItems);
@@ -72,8 +75,7 @@ export default function NewQuotationForm() {
         </Typography>
       </Box>
 
-      
-
+  
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
         <Tabs
@@ -90,89 +92,89 @@ export default function NewQuotationForm() {
         </Tabs>
       </Paper>
 
-      {/* Create Tab */}
+      {/* CREATE TAB */}
       {tabValue === 0 && (
         <Box>
-          <Grid container spacing={2}>
-            {/* Client */}
-            <Grid item xs={12} md={4}>
-              <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
-                <CardContent>
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="bold"
-                    gutterBottom
-                  >
-                    Client
-                  </Typography>
-                  <FormControl fullWidth>
-                    <InputLabel>Select Client</InputLabel>
-                    <Select defaultValue="">
-                      <MenuItem value="client1">Client 1</MenuItem>
-                      <MenuItem value="client2">Client 2</MenuItem>
-                    </Select>
-                  </FormControl>
-                </CardContent>
-              </Card>
-            </Grid>
+          {/* Client Box */}
+          <Card
+            variant="outlined"
+            sx={{ borderRadius: 2, mb: 2, width: "60%" }}
+          >
+            <CardContent>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Client
+              </Typography>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel shrink>Select Client</InputLabel>
+                <Select
+                  defaultValue=""
+                  displayEmpty
+                  label="Select Client"
+                >
+                  <MenuItem value="">
+                    <em>None</em>
+                  </MenuItem>
+                  <MenuItem value="client1">Client 1</MenuItem>
+                  <MenuItem value="client2">Client 2</MenuItem>
+                </Select>
+          </FormControl>
 
-            {/* Quote Info */}
-            <Grid item xs={12} md={4}>
-              <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
-                <CardContent>
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="bold"
-                    gutterBottom
-                  >
-                    Quote Info
-                  </Typography>
-                  <TextField
-                    label="Quote Date"
-                    type="date"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ mb: 2 }}
-                  />
-                  <TextField
-                    label="Valid Until"
-                    type="date"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ mb: 2 }}
-                  />
-                  <TextField label="Partial/Deposit" fullWidth type="number" />
-                </CardContent>
-              </Card>
-            </Grid>
+            </CardContent>
+          </Card>
 
-            {/* Metadata */}
-            <Grid item xs={12} md={4}>
-              <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
-                <CardContent>
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="bold"
-                    gutterBottom
-                  >
-                    Metadata
-                  </Typography>
-                  <TextField label="Quote #" fullWidth sx={{ mb: 2 }} />
-                  <TextField label="PO #" fullWidth sx={{ mb: 2 }} />
-                  <FormControl fullWidth>
-                    <InputLabel>Discount</InputLabel>
-                    <Select defaultValue="amount">
-                      <MenuItem value="amount">Amount</MenuItem>
-                      <MenuItem value="percentage">Percentage</MenuItem>
-                    </Select>
-                  </FormControl>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          {/* Quote Info Box */}
+          <Card
+            variant="outlined"
+            sx={{ borderRadius: 2, mb: 2, width: "60%" }}
+          >
+            <CardContent>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Quote Info
+              </Typography>
+              <TextField
+                label="Quote Date"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Valid Until"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
+              />
+              <TextField label="Partial/Deposit" fullWidth type="number" />
+            </CardContent>
+          </Card>
+
+          {/* Metadata Box */}
+          <Card
+            variant="outlined"
+            sx={{ borderRadius: 2, mb: 2, width: "60%" }}
+          >
+            <CardContent>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Metadata
+              </Typography>
+              <TextField label="Quote #" fullWidth sx={{ mb: 2 }} />
+              <TextField label="PO #" fullWidth sx={{ mb: 2 }} />
+              <FormControl fullWidth variant="outlined">
+                <InputLabel shrink>Discount</InputLabel>
+                <Select 
+                  defaultValue="amount"
+                  label="Discount"
+                >
+                  <MenuItem value="amount">Amount</MenuItem>
+                  <MenuItem value="percentage">Percentage</MenuItem>
+                </Select>
+              </FormControl>
+            </CardContent>
+          </Card>
 
           {/* Products Section */}
-          <Box sx={{ mt: 4 }}>
+          <Box sx={{ width: "100%", mt: 4 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
               Products
             </Typography>
@@ -298,7 +300,7 @@ export default function NewQuotationForm() {
         </Box>
       )}
 
-      {/* Documents Tab */}
+      {/* DOCUMENTS TAB */}
       {tabValue === 1 && (
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
@@ -312,14 +314,13 @@ export default function NewQuotationForm() {
         </Card>
       )}
 
-      {/* Settings Tab */}
+      {/* SETTINGS TAB */}
       {tabValue === 2 && (
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
               Settings
             </Typography>
-
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
                 <TextField label="Project" fullWidth />
