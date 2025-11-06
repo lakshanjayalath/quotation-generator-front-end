@@ -27,29 +27,37 @@ quotation-generator-front-end/
 │   ├── assets/
 │   │   └── react.svg
 │   ├── components/
+│   │   ├── AccountManagement.jsx
 │   │   ├── ClientPage.jsx
+│   │   ├── CompanyDetails.jsx
 │   │   ├── ItemPage.jsx
 │   │   ├── NewClientForm.jsx
 │   │   ├── NewItemForm.jsx
 │   │   ├── NewQuotationForm.jsx
 │   │   ├── Overview.jsx
+│   │   ├── ProductSettings.jsx
 │   │   ├── QuotationList.jsx
 │   │   ├── RecentActivity.jsx
 │   │   ├── RecentPayment.jsx
 │   │   ├── RecentTransaction.jsx
+│   │   ├── SettingSidebar.jsx
 │   │   ├── SideBar.jsx
-│   │   └── TopBar.jsx
+│   │   ├── TaskSettings.jsx
+│   │   ├── TopBar.jsx
+│   │   └── UserDetails.jsx
 │   └── pages/
 │       ├── Dashboard.jsx
 │       ├── LandingPage.jsx
 │       ├── LoginPage.jsx
-│       └── RegisterForm.jsx
+│       ├── RegisterForm.jsx
+│       └── Setting.jsx
 ├── .gitignore
 ├── eslint.config.js
 ├── index.html
 ├── package.json
 ├── README.md
 └── vite.config.js
+
 ```
 
 ## Getting Started
