@@ -18,31 +18,10 @@ import {
   FormControl,
   Select,
   TablePagination,
+  CircularProgress,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import HomeIcon from '@mui/icons-material/Home';
-
-function createData(id, item, description, price, qty) {
-  return { id, item, description, price, qty };
-}
-
-const rowsData = [
-  createData(1, "Wireless Mouse", "Ergonomic Bluetooth mouse", "3500 LKR", 12),
-  createData(2, "Mechanical Keyboard", "RGB backlit keyboard", "12,500 LKR", 8),
-  createData(3, "Laptop Stand", "Adjustable aluminum stand", "4500 LKR", 20),
-  createData(4, "USB-C Hub", "Multi-port adapter", "3500 LKR", 15),
-  createData(5, "External SSD", "1TB portable SSD", "28,000 LKR", 5),
-  createData(6, "Gaming Headset", "Surround sound headphones", "18,000 LKR", 7),
-  createData(7, "Smartwatch", "Fitness tracker with GPS", "32,000 LKR", 10),
-  createData(8, "Webcam", "1080p HD camera", "7500 LKR", 6),
-  createData(9, "Portable Speaker", "Bluetooth waterproof speaker", "14,000 LKR", 9),
-  createData(10, "Power Bank", "20,000mAh fast charging", "6500 LKR", 25),
-  createData(11, "Wireless Charger", "Fast Qi charger", "4800 LKR", 18),
-  createData(12, "LED Monitor", "27-inch Full HD display", "55,000 LKR", 4),
-  createData(13, "Graphics Tablet", "Digital drawing pad", "22,000 LKR", 6),
-  createData(14, "Noise Cancelling Earbuds", "Wireless ANC earbuds", "19,500 LKR", 8),
-  createData(15, "Portable Projector", "Mini home projector", "42,000 LKR", 3),
-];
 
 // Row Component
 function ItemRow({
@@ -96,14 +75,39 @@ function ItemRow({
 }
 
 export default function ItemPage() {
-  const [rows, setRows] = React.useState(rowsData);
+  const [rows, setRows] = React.useState([]);
   const [selected, setSelected] = React.useState([]);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [menuRowId, setMenuRowId] = React.useState(null);
   const [filter, setFilter] = React.useState("");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
   const navigate = useNavigate();
+
+  // Fetch items from API
+  React.useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("http://localhost:5264/api/items");
+        if (!response.ok) {
+          throw new Error("Failed to fetch items");
+        }
+        const data = await response.json();
+        setRows(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+        console.error("Error fetching items:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, []);
 
   // Filter Logic
   const filteredRows = rows.filter(
@@ -246,7 +250,19 @@ export default function ItemPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedRows.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ color: "red" }}>
+                    Error: {error}
+                  </TableCell>
+                </TableRow>
+              ) : paginatedRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     No items available

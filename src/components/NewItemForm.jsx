@@ -72,8 +72,7 @@ export default function NewItemForm({ initialData = null, onSave }) {
   const handleSave = async () => {
     if (validateForm()) {
       try {
-        // Replace with your backend API call
-        await axios.post("/api/items", formData);
+        await axios.post("http://localhost:5264/api/items", formData);
         setShowSuccess(true);
 
         if (onSave) onSave(formData);
@@ -87,8 +86,14 @@ export default function NewItemForm({ initialData = null, onSave }) {
             quantity: 0,
           });
         }
+
+        // Navigate back to items page after successful save
+        setTimeout(() => {
+          navigate("/dashboard/items");
+        }, 1500);
       } catch (error) {
         console.error("Error saving item:", error);
+        alert("Failed to save item. Please try again.");
       }
     }
   };
