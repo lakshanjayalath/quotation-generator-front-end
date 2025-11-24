@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -16,14 +16,17 @@ import {
   Tabs,
   Tab,
   Divider,
+  CircularProgress,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 
 export default function NewClientForm({ initialData = null, onSave }) {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [tab, setTab] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState(
     initialData || {
@@ -61,6 +64,42 @@ export default function NewClientForm({ initialData = null, onSave }) {
   );
 
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Fetch client data if editing
+  useEffect(() => {
+    if (id) {
+      const fetchClient = async () => {
+        try {
+          setLoading(true);
+          const response = await axios.get(`http://localhost:5264/api/clients/${id}`);
+          console.log("Fetched client data:", response.data);
+
+          // Ensure contacts array exists
+          const clientData = {
+            ...response.data,
+            contacts: response.data.contacts || [{ firstName: "", lastName: "", email: "", phone: "", addToInvoices: false }]
+          };
+
+          setFormData(clientData);
+        } catch (error) {
+          console.error("Error fetching client:", error);
+          console.error("Error details:", error.response?.data || error.message);
+
+          if (error.response?.status === 500) {
+            alert("Server error: Please check your backend API and database connection.");
+          } else if (error.response?.status === 404) {
+            alert("Client not found. It may have been deleted.");
+            navigate("/dashboard/clients");
+          } else {
+            alert(`Failed to load client data: ${error.response?.statusText || error.message}`);
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchClient();
+    }
+  }, [id, navigate]);
 
   const handleChange = (field) => (event) => {
     const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
@@ -100,13 +139,69 @@ export default function NewClientForm({ initialData = null, onSave }) {
 
   const handleSave = async () => {
     try {
-      await axios.post("/api/clients", formData);
+      if (id) {
+        // Update existing client
+        await axios.put(`http://localhost:5264/api/clients/${id}`, formData);
+      } else {
+        // Create new client
+        await axios.post("http://localhost:5264/api/clients", formData);
+      }
       setShowSuccess(true);
       if (onSave) onSave(formData);
+
+      // Reset form only if it's a new client, not editing
+      if (!id && !initialData) {
+        setFormData({
+          clientName: "",
+          clientIdNumber: "",
+          clientContactNumber: "",
+          clientAddress: "",
+          clientEmail: "",
+          name: "",
+          number: "",
+          group: "",
+          assignedUser: "",
+          idNumber: "",
+          vatNumber: "",
+          website: "",
+          phone: "",
+          routingId: "",
+          validVat: false,
+          taxExempt: false,
+          classification: "",
+          contacts: [{ firstName: "", lastName: "", email: "", phone: "", addToInvoices: false }],
+          billingStreet: "",
+          billingSuite: "",
+          billingCity: "",
+          billingState: "",
+          billingPostalCode: "",
+          billingCountry: "",
+          shippingStreet: "",
+          shippingSuite: "",
+          shippingCity: "",
+          shippingState: "",
+          shippingPostalCode: "",
+          shippingCountry: "",
+        });
+      }
+
+      // Navigate back to clients page after successful save
+      setTimeout(() => {
+        navigate("/dashboard/clients");
+      }, 1500);
     } catch (error) {
       console.error("Error saving client:", error);
+      alert("Failed to save client. Please try again.");
     }
   };
+
+  if (loading) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4, display: "flex", justifyContent: "center" }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   // Common style for focused color
   const textFieldStyle = {
@@ -150,7 +245,7 @@ export default function NewClientForm({ initialData = null, onSave }) {
         </Link>
 
         <Typography color="text.primary">
-          {initialData ? "Edit Client" : "New Client"}
+          {id || initialData ? "Edit Client" : "New Client"}
         </Typography>
       </Breadcrumbs>
 
@@ -161,7 +256,7 @@ export default function NewClientForm({ initialData = null, onSave }) {
           sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}
         >
           <Typography variant="h5" fontWeight={500}>
-            {initialData ? "Edit Client" : "New Client"}
+            {id || initialData ? "Edit Client" : "New Client"}
           </Typography>
           <Box>
             <Button
