@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -17,42 +17,14 @@ import {
   FormControl,
   Select,
   TablePagination,
+  CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import HomeIcon from "@mui/icons-material/Home";
 
-// ✅ Client Data Creator - Now includes companyName
-function createData(clientId, name, companyName, email, contactNumber, createdDate) {
-  return { clientId, name, companyName, email, contactNumber, createdDate };
-}
-
-// ✅ Sample Client Data (added company names)
-const rowsData = [
-  createData(1, "Lakshan Perera", "TechLabs Pvt Ltd", "lakshan.perera@example.com", "+94711234567", "2025-01-05"),
-  createData(2, "Nimali Silva", "Silverline Solutions", "nimali.silva@example.com", "+94776543210", "2025-01-10"),
-  createData(3, "Ruwani Jayasinghe", "Ceylon Software House", "ruwani.jaya@example.com", "+94713456789", "2025-01-15"),
-  createData(4, "Sandun Fernando", "NextGen IT", "sandun.fernando@example.com", "+94772345678", "2025-01-20"),
-  createData(5, "Kasun Abeysekera", "Skyline Systems", "kasun.abey@example.com", "+94719876543", "2025-01-25"),
-  createData(6, "Dilani Kariyawasam", "CloudPro Lanka", "dilani.kari@example.com", "+94717788990", "2025-02-01"),
-  createData(7, "Chathuri Weerasinghe", "SmartTech Co.", "chathuri.weera@example.com", "+94714567890", "2025-02-05"),
-  createData(8, "Ishara Senanayake", "Innova Lanka", "ishara.sena@example.com", "+94717654321", "2025-02-10"),
-  createData(9, "Sajith Ranasinghe", "BlueWave Technologies", "sajith.rana@example.com", "+94716789012", "2025-02-15"),
-  createData(10, "Malshi Jayawardena", "CodeCrafters", "malshi.jaya@example.com", "+94719812345", "2025-02-20"),
-  createData(11, "Tharindu Wickramasinghe", "PixelWorks", "tharindu.wick@example.com", "+94714561234", "2025-02-25"),
-  createData(12, "Hansani Gunasekara", "TechBeez", "hansani.guna@example.com", "+94717671234", "2025-03-01"),
-  createData(13, "Pasindu Madushanka", "DataNova", "pasindu.madu@example.com", "+94712234567", "2025-03-05"),
-  createData(14, "Shehani Rodrigo", "SoftPath", "shehani.rodrigo@example.com", "+94715556677", "2025-03-10"),
-  createData(15, "Manoj Peris", "GreenEdge Systems", "manoj.peris@example.com", "+94718887766", "2025-03-15"),
-  createData(16, "Rashmi De Silva", "BrightVision", "rashmi.desilva@example.com", "+94713334455", "2025-03-20"),
-  createData(17, "Nadeesha Fernando", "Quantum Lanka", "nadeesha.fernando@example.com", "+94712223344", "2025-03-25"),
-  createData(18, "Kavindi Rajapaksha", "FutureSoft", "kavindi.raja@example.com", "+94714445566", "2025-03-30"),
-  createData(19, "Pradeep Jayalath", "IT Dynamics", "pradeep.jaya@example.com", "+94716667788", "2025-04-04"),
-  createData(20, "Thushara Perera", "CyberLanka", "thushara.perera@example.com", "+94719998877", "2025-04-09"),
-];
-
 // ✅ Row Component
-function ClientRow({ row, isSelected, handleClick, handleMenuOpen, anchorEl, menuRowId, handleMenuClose }) {
+function ClientRow({ row, isSelected, handleClick, handleMenuOpen, anchorEl, menuRowId, handleMenuClose, handleEdit, handleDelete }) {
   return (
     <TableRow hover role="checkbox" selected={isSelected} aria-checked={isSelected}>
       <TableCell padding="checkbox">
@@ -83,8 +55,8 @@ function ClientRow({ row, isSelected, handleClick, handleMenuOpen, anchorEl, men
           Action
         </Button>
         <Menu anchorEl={anchorEl} open={menuRowId === row.clientId} onClose={handleMenuClose}>
-          <MenuItem onClick={handleMenuClose}>Edit</MenuItem>
-          <MenuItem onClick={handleMenuClose}>Delete</MenuItem>
+          <MenuItem onClick={() => handleEdit(row.clientId)}>Edit</MenuItem>
+          <MenuItem onClick={() => handleDelete(row.clientId)}>Delete</MenuItem>
         </Menu>
       </TableCell>
     </TableRow>
@@ -92,14 +64,39 @@ function ClientRow({ row, isSelected, handleClick, handleMenuOpen, anchorEl, men
 }
 
 export default function ClientPage() {
-  const [rows, setRows] = useState(rowsData);
+  const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuRowId, setMenuRowId] = useState(null);
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  // Fetch clients from API
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("http://localhost:5264/api/clients");
+        if (!response.ok) {
+          throw new Error("Failed to fetch clients");
+        }
+        const data = await response.json();
+        setRows(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+        console.error("Error fetching clients:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClients();
+  }, []);
 
   // ✅ Filter and Pagination
   const filteredRows = rows.filter(
@@ -131,6 +128,38 @@ export default function ClientPage() {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setMenuRowId(null);
+  };
+
+  // ✅ Edit Client
+  const handleEdit = (clientId) => {
+    handleMenuClose();
+    navigate(`/dashboard/clients/edit/${clientId}`);
+  };
+
+  // ✅ Delete Client
+  const handleDelete = async (clientId) => {
+    if (window.confirm("Are you sure you want to delete this client?")) {
+      try {
+        const response = await fetch(`http://localhost:5264/api/clients/${clientId}`, {
+          method: "DELETE",
+        });
+        
+        if (!response.ok) {
+          throw new Error("Failed to delete client");
+        }
+        
+        // Remove client from state
+        setRows((prevRows) => prevRows.filter((row) => row.clientId !== clientId));
+        setSelected((prevSelected) => prevSelected.filter((id) => id !== clientId));
+        handleMenuClose();
+        alert("Client deleted successfully!");
+      } catch (err) {
+        console.error("Error deleting client:", err);
+        alert("Failed to delete client. Please try again.");
+      }
+    } else {
+      handleMenuClose();
+    }
   };
 
   // ✅ Pagination
@@ -205,7 +234,19 @@ export default function ClientPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedRows.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ color: "red" }}>
+                    Error: {error}
+                  </TableCell>
+                </TableRow>
+              ) : paginatedRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     No clients available
@@ -222,6 +263,8 @@ export default function ClientPage() {
                     anchorEl={anchorEl}
                     menuRowId={menuRowId}
                     handleMenuClose={handleMenuClose}
+                    handleEdit={handleEdit}
+                    handleDelete={handleDelete}
                   />
                 ))
               )}

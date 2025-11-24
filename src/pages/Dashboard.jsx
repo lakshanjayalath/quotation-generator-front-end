@@ -53,6 +53,7 @@ export default function Dashboard() {
           <Routes>
             <Route index element={<Overview />} />
             <Route path="clients" element={<ClientPage />} />
+            <Route path="clients/edit/:id" element={<NewClientForm />} />
             <Route path="items" element={<ItemPage />} />
             <Route path="quotes" element={<QuotationList />} />
             <Route path="new-client" element={<NewClientForm />} />
