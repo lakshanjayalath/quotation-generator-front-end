@@ -139,12 +139,24 @@ export default function NewClientForm({ initialData = null, onSave }) {
 
   const handleSave = async () => {
     try {
+      // Clean up the payload - remove Id from contacts for new clients
+      const payload = id ? formData : {
+        ...formData,
+        contacts: formData.contacts.map(c => ({
+          firstName: c.firstName,
+          lastName: c.lastName,
+          email: c.email,
+          phone: c.phone,
+          addToInvoices: c.addToInvoices
+        }))
+      };
+
       if (id) {
         // Update existing client
-        await axios.put(`http://localhost:5264/api/clients/${id}`, formData);
+        await axios.put(`http://localhost:5264/api/clients/${id}`, payload);
       } else {
         // Create new client
-        await axios.post("http://localhost:5264/api/clients", formData);
+        await axios.post("http://localhost:5264/api/clients", payload);
       }
       setShowSuccess(true);
       if (onSave) onSave(formData);
@@ -191,7 +203,9 @@ export default function NewClientForm({ initialData = null, onSave }) {
       }, 1500);
     } catch (error) {
       console.error("Error saving client:", error);
-      alert("Failed to save client. Please try again.");
+      console.error("Error response:", error.response?.data);
+      const errorMsg = error.response?.data?.message || error.response?.statusText || error.message;
+      alert(`Failed to save client: ${errorMsg}`);
     }
   };
 
