@@ -10,7 +10,9 @@ import QuotationList from "../components/QuotationList";
 import NewClientForm from "../components/NewClientForm";
 import NewItemForm from "../components/NewItemForm";
 import NewQuotationForm from "../components/NewQuotationForm";
+import Report from "../components/Report"; 
 import Setting from "./Setting";
+
 
 export default function Dashboard() {
   const topBarHeight = 64;
@@ -59,6 +61,7 @@ export default function Dashboard() {
             <Route path="new-client" element={<NewClientForm />} />
             <Route path="new-item" element={<NewItemForm />} />
             <Route path="new-quote" element={<NewQuotationForm />} />
+            <Route path="reports" element={<Report />} />
 
             {/* Settings Page */}
             <Route path="setting/*" element={<Setting />} />
