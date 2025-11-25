@@ -19,7 +19,7 @@ export default function Report() {
   const [formData, setFormData] = useState({
     reportType: "Activity",
     sendEmail: false,
-    activity: "",
+    activity: "All",
     range: "All",
   });
 
@@ -92,7 +92,6 @@ export default function Report() {
               <MenuItem value="Quotes">Quotes</MenuItem>
               <MenuItem value="Clients">Clients</MenuItem>
               <MenuItem value="Products">Products</MenuItem>
-              <MenuItem value="InvoicesReport">Invoices (List)</MenuItem>
             </TextField>
 
             {/* Send Email */}
@@ -108,21 +107,20 @@ export default function Report() {
               sx={{ mt: 3 }}
             />
 
-            {/* Activity Dropdown */}
-            {formData.reportType === "Activity" && (
-              <TextField
-                select
-                label="Activity"
-                fullWidth
-                value={formData.activity}
-                onChange={handleChange("activity")}
-                sx={{ mt: 3, ...textFieldStyle }}
-              >
-                <MenuItem value="Created">Created</MenuItem>
-                <MenuItem value="Updated">Updated</MenuItem>
-                <MenuItem value="Deleted">Deleted</MenuItem>
-              </TextField>
-            )}
+            {/* Activity Dropdown — Always Visible */}
+            <TextField
+              select
+              label="Activity"
+              fullWidth
+              value={formData.activity}
+              onChange={handleChange("activity")}
+              sx={{ mt: 3, ...textFieldStyle }}
+            >
+              <MenuItem value="All">All</MenuItem>
+              <MenuItem value="Created">Created</MenuItem>
+              <MenuItem value="Updated">Updated</MenuItem>
+              <MenuItem value="Deleted">Deleted</MenuItem>
+            </TextField>
           </Box>
 
           {/* RIGHT SECTION */}
