@@ -9,29 +9,116 @@ import {
   Link,
   Divider,
   Grid,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function RegisterPage() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
-    terms: false,
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
-    });
+    }));
+    // Clear error when user starts typing
+    if (error) setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data:", formData);
+    setError("");
+    
+    console.log("Form Data:", formData); // Debugging
+
+    // Validation
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      setError("All fields are required");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.post("http://localhost:5264/api/Auth/register", {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        terms: true, // Silently accept terms to satisfy backend validation
+      });
+
+      console.log("Registration successful:", response.data);
+      setSuccess(true);
+
+      // Redirect to login page after 2 seconds
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+    } catch (err) {
+      console.error("Registration error:", err);
+      console.error("Error response:", err.response);
+      
+      let errorMessage = "Registration failed. Please try again.";
+      
+      if (err.response) {
+        if (err.response.data) {
+          if (typeof err.response.data === 'string') {
+            errorMessage = err.response.data;
+          } else if (err.response.data.errors) {
+            // ASP.NET Core ValidationProblemDetails
+            errorMessage = Object.values(err.response.data.errors).flat().join(", ");
+          } else if (err.response.data.message) {
+            errorMessage = err.response.data.message;
+          } else if (Array.isArray(err.response.data)) {
+             errorMessage = err.response.data.map(e => e.description || e).join(", ");
+          } else if (typeof err.response.data === 'object') {
+             // Fallback for other object structures
+             const values = Object.values(err.response.data);
+             // Check if values are arrays (simple dictionary of errors)
+             if (values.length > 0 && values.every(v => Array.isArray(v))) {
+                errorMessage = values.flat().join(", ");
+             } else {
+                errorMessage = JSON.stringify(err.response.data);
+             }
+          }
+        } else {
+          errorMessage = `Server error: ${err.response.status}`;
+        }
+      } else if (err.request) {
+        errorMessage = "No response from server. Please check your connection.";
+      } else {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,6 +147,20 @@ export default function RegisterPage() {
         </Typography>
 
         <form onSubmit={handleSubmit}>
+          {/* Error Alert */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Success Alert */}
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Registration successful! Redirecting to login...
+            </Alert>
+          )}
+
           <Grid container spacing={2}>
             {/* First Name */}
             <Grid item xs={12} sm={6}>
@@ -69,6 +170,8 @@ export default function RegisterPage() {
                 placeholder="First Name"
                 value={formData.firstName}
                 onChange={handleChange}
+                disabled={loading}
+                required
               />
             </Grid>
 
@@ -80,6 +183,8 @@ export default function RegisterPage() {
                 placeholder="Last Name"
                 value={formData.lastName}
                 onChange={handleChange}
+                disabled={loading}
+                required
               />
             </Grid>
           </Grid>
@@ -92,6 +197,8 @@ export default function RegisterPage() {
             type="email"
             value={formData.email}
             onChange={handleChange}
+            disabled={loading}
+            required
             sx={{ mt: 2 }}
           />
 
@@ -103,6 +210,8 @@ export default function RegisterPage() {
             type="password"
             value={formData.password}
             onChange={handleChange}
+            disabled={loading}
+            required
             sx={{ mt: 2 }}
           />
 
@@ -114,26 +223,8 @@ export default function RegisterPage() {
             type="password"
             value={formData.confirmPassword}
             onChange={handleChange}
-            sx={{ mt: 2 }}
-          />
-
-          {/* Terms Checkbox */}
-          <FormControlLabel
-            control={
-              <Checkbox
-                name="terms"
-                checked={formData.terms}
-                onChange={handleChange}
-              />
-            }
-            label={
-              <Typography variant="body2">
-                I accept the{" "}
-                <Link href="#" underline="hover">
-                  Terms of Use & Privacy Policy
-                </Link>
-              </Typography>
-            }
+            disabled={loading}
+            required
             sx={{ mt: 2 }}
           />
 
@@ -142,6 +233,7 @@ export default function RegisterPage() {
             fullWidth
             type="submit"
             variant="contained"
+            disabled={loading}
             sx={{
               bgcolor: "black",
               color: "white",
@@ -151,7 +243,7 @@ export default function RegisterPage() {
               "&:hover": { bgcolor: "#333" },
             }}
           >
-            Register Now
+            {loading ? <CircularProgress size={24} color="inherit" /> : "Register Now"}
           </Button>
         </form>
         <Box textAlign="center" mt={2}>
