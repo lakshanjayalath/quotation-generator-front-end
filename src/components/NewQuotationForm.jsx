@@ -28,14 +28,180 @@ import {
 import HomeIcon from "@mui/icons-material/Home";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function NewQuotationForm() {
   const [tabValue, setTabValue] = useState(0);
   const [items, setItems] = useState([]);
   const [inclusiveTaxes, setInclusiveTaxes] = useState(false);
+  
+  // Form state for quotation details
+  const [quoteData, setQuoteData] = useState({
+    client: "",
+    quoteDate: "",
+    validUntil: "",
+    partialDeposit: "",
+    quoteNumber: "",
+    poNumber: "",
+    discountType: "amount",
+    discount: 0,
+  });
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Handle quote data changes
+  const handleQuoteDataChange = (field, value) => {
+    setQuoteData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Calculate totals
+  const calculateSubtotal = () => {
+    return items.reduce((sum, item) => sum + (parseFloat(item.lineTotal) || 0), 0);
+  };
+
+  const calculateDiscount = () => {
+    const subtotal = calculateSubtotal();
+    if (quoteData.discountType === "percentage") {
+      return (subtotal * (parseFloat(quoteData.discount) || 0)) / 100;
+    }
+    return parseFloat(quoteData.discount) || 0;
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() - calculateDiscount();
+  };
+
+  // Generate PDF
+  const handleGeneratePDF = () => {
+    const doc = new jsPDF();
+    
+    // Company Header
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("QUOTATION", 105, 25, { align: "center" });
+    
+    // Company Info (Left Side)
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Your Company Name", 14, 45);
+    doc.text("123 Business Street", 14, 51);
+    doc.text("City, State 12345", 14, 57);
+    doc.text("Phone: (123) 456-7890", 14, 63);
+    doc.text("Email: info@company.com", 14, 69);
+    
+    // Quote Details (Right Side)
+    doc.setFont("helvetica", "bold");
+    doc.text("Quote Details", 140, 45);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Quote #: ${quoteData.quoteNumber || "N/A"}`, 140, 51);
+    doc.text(`Date: ${quoteData.quoteDate || new Date().toLocaleDateString()}`, 140, 57);
+    doc.text(`Valid Until: ${quoteData.validUntil || "N/A"}`, 140, 63);
+    doc.text(`PO #: ${quoteData.poNumber || "N/A"}`, 140, 69);
+    
+    // Client Info
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bill To:", 14, 85);
+    doc.setFont("helvetica", "normal");
+    doc.text(quoteData.client || "Client Name", 14, 91);
+    
+    // Horizontal Line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 98, 196, 98);
+    
+    // Items Table
+    const tableData = items.map((item) => [
+      item.item || "",
+      item.description || "",
+      parseFloat(item.unitCost || 0).toFixed(2),
+      item.quantity || 0,
+      parseFloat(item.lineTotal || 0).toFixed(2),
+    ]);
+    
+    autoTable(doc, {
+      startY: 105,
+      head: [["Item", "Description", "Unit Cost", "Qty", "Line Total"]],
+      body: tableData.length > 0 ? tableData : [["No items added", "", "", "", ""]],
+      theme: "striped",
+      headStyles: {
+        fillColor: [51, 51, 51],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+      },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 25, halign: "right" },
+        3: { cellWidth: 20, halign: "center" },
+        4: { cellWidth: 30, halign: "right" },
+      },
+    });
+    
+    // Totals Section
+    const finalY = doc.lastAutoTable.finalY + 10;
+    const subtotal = calculateSubtotal();
+    const discount = calculateDiscount();
+    const total = calculateTotal();
+    
+    doc.setFontSize(10);
+    doc.text("Subtotal:", 140, finalY);
+    doc.text(`$${subtotal.toFixed(2)}`, 196, finalY, { align: "right" });
+    
+    if (discount > 0) {
+      doc.text(`Discount (${quoteData.discountType === "percentage" ? quoteData.discount + "%" : "$" + quoteData.discount}):`, 140, finalY + 6);
+      doc.text(`-$${discount.toFixed(2)}`, 196, finalY + 6, { align: "right" });
+    }
+    
+    doc.setDrawColor(0, 0, 0);
+    doc.line(140, finalY + (discount > 0 ? 10 : 4), 196, finalY + (discount > 0 ? 10 : 4));
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Total:", 140, finalY + (discount > 0 ? 18 : 12));
+    doc.text(`$${total.toFixed(2)}`, 196, finalY + (discount > 0 ? 18 : 12), { align: "right" });
+    
+    // Partial/Deposit
+    if (quoteData.partialDeposit) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Deposit Required: $${parseFloat(quoteData.partialDeposit).toFixed(2)}`, 140, finalY + (discount > 0 ? 26 : 20));
+    }
+    
+    // Footer
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 100, 100);
+    doc.text("Thank you for your business!", 105, pageHeight - 20, { align: "center" });
+    doc.text("This quotation is valid for 30 days from the date of issue.", 105, pageHeight - 14, { align: "center" });
+    
+    // Open PDF in new tab
+    try {
+      const pdfDataUri = doc.output("datauristring");
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(
+          `<iframe width="100%" height="100%" src="${pdfDataUri}" style="border:none;"></iframe>`
+        );
+        newWindow.document.title = `Quotation_${quoteData.quoteNumber || "draft"}`;
+      } else {
+        // Fallback: download if popup blocked
+        alert("Popup blocked! Downloading PDF instead.");
+        doc.save(`Quotation_${quoteData.quoteNumber || "draft"}_${new Date().toISOString().split("T")[0]}.pdf`);
+      }
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      alert("Error generating PDF: " + error.message);
+    }
+  };
 
   // Add a new product row
   const handleAddItem = () => {
@@ -107,15 +273,16 @@ export default function NewQuotationForm() {
               <FormControl fullWidth variant="outlined">
                 <InputLabel shrink>Select Client</InputLabel>
                 <Select
-                  defaultValue=""
+                  value={quoteData.client}
+                  onChange={(e) => handleQuoteDataChange("client", e.target.value)}
                   displayEmpty
                   label="Select Client"
                 >
                   <MenuItem value="">
                     <em>None</em>
                   </MenuItem>
-                  <MenuItem value="client1">Client 1</MenuItem>
-                  <MenuItem value="client2">Client 2</MenuItem>
+                  <MenuItem value="Client 1">Client 1</MenuItem>
+                  <MenuItem value="Client 2">Client 2</MenuItem>
                 </Select>
           </FormControl>
 
@@ -135,6 +302,8 @@ export default function NewQuotationForm() {
                 label="Quote Date"
                 type="date"
                 fullWidth
+                value={quoteData.quoteDate}
+                onChange={(e) => handleQuoteDataChange("quoteDate", e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 sx={{ mb: 2 }}
               />
@@ -142,10 +311,18 @@ export default function NewQuotationForm() {
                 label="Valid Until"
                 type="date"
                 fullWidth
+                value={quoteData.validUntil}
+                onChange={(e) => handleQuoteDataChange("validUntil", e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 sx={{ mb: 2 }}
               />
-              <TextField label="Partial/Deposit" fullWidth type="number" />
+              <TextField 
+                label="Partial/Deposit" 
+                fullWidth 
+                type="number"
+                value={quoteData.partialDeposit}
+                onChange={(e) => handleQuoteDataChange("partialDeposit", e.target.value)}
+              />
             </CardContent>
           </Card>
 
@@ -158,18 +335,38 @@ export default function NewQuotationForm() {
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 Metadata
               </Typography>
-              <TextField label="Quote #" fullWidth sx={{ mb: 2 }} />
-              <TextField label="PO #" fullWidth sx={{ mb: 2 }} />
-              <FormControl fullWidth variant="outlined">
-                <InputLabel shrink>Discount</InputLabel>
+              <TextField 
+                label="Quote #" 
+                fullWidth 
+                sx={{ mb: 2 }}
+                value={quoteData.quoteNumber}
+                onChange={(e) => handleQuoteDataChange("quoteNumber", e.target.value)}
+              />
+              <TextField 
+                label="PO #" 
+                fullWidth 
+                sx={{ mb: 2 }}
+                value={quoteData.poNumber}
+                onChange={(e) => handleQuoteDataChange("poNumber", e.target.value)}
+              />
+              <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+                <InputLabel shrink>Discount Type</InputLabel>
                 <Select 
-                  defaultValue="amount"
-                  label="Discount"
+                  value={quoteData.discountType}
+                  onChange={(e) => handleQuoteDataChange("discountType", e.target.value)}
+                  label="Discount Type"
                 >
                   <MenuItem value="amount">Amount</MenuItem>
                   <MenuItem value="percentage">Percentage</MenuItem>
                 </Select>
               </FormControl>
+              <TextField 
+                label={quoteData.discountType === "percentage" ? "Discount (%)" : "Discount ($)"} 
+                fullWidth 
+                type="number"
+                value={quoteData.discount}
+                onChange={(e) => handleQuoteDataChange("discount", e.target.value)}
+              />
             </CardContent>
           </Card>
 
@@ -296,6 +493,61 @@ export default function NewQuotationForm() {
                 </Button>
               </Box>
             </Paper>
+
+            {/* Totals Section */}
+            <Paper sx={{ mt: 2, p: 2, borderRadius: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                <Box sx={{ width: "300px" }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                    <Typography>Subtotal:</Typography>
+                    <Typography fontWeight="bold">${calculateSubtotal().toFixed(2)}</Typography>
+                  </Box>
+                  {calculateDiscount() > 0 && (
+                    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                      <Typography>
+                        Discount ({quoteData.discountType === "percentage" ? `${quoteData.discount}%` : `$${quoteData.discount}`}):
+                      </Typography>
+                      <Typography color="error">-${calculateDiscount().toFixed(2)}</Typography>
+                    </Box>
+                  )}
+                  <Divider sx={{ my: 1 }} />
+                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Typography variant="h6" fontWeight="bold">Total:</Typography>
+                    <Typography variant="h6" fontWeight="bold">${calculateTotal().toFixed(2)}</Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Paper>
+
+            {/* Action Buttons */}
+            <Box sx={{ display: "flex", gap: 2, mt: 3, justifyContent: "flex-end" }}>
+              <Button
+                variant="contained"
+                startIcon={<PictureAsPdfIcon />}
+                onClick={handleGeneratePDF}
+                sx={{
+                  backgroundColor: "#d32f2f",
+                  color: "white",
+                  textTransform: "none",
+                  px: 3,
+                  "&:hover": { backgroundColor: "#b71c1c" },
+                }}
+              >
+                Generate PDF
+              </Button>
+              <Button
+                variant="contained"
+                sx={{
+                  backgroundColor: "#4a7c59",
+                  color: "white",
+                  textTransform: "none",
+                  px: 3,
+                  "&:hover": { backgroundColor: "#386641" },
+                }}
+              >
+                Save Quote
+              </Button>
+            </Box>
           </Box>
         </Box>
       )}
