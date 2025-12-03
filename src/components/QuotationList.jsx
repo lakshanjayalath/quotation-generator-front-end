@@ -19,27 +19,13 @@ import {
   Select,
   TablePagination,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import HomeIcon from "@mui/icons-material/Home";
-
-// Row data factory
-function createData(id, status, number, client, amount, netAmount, date, validUntil) {
-  return { id, status, number, client, amount, netAmount, date, validUntil };
-}
-
-// Sample rows
-const rowsData = [
-  createData(1, "Sent", "0001", "Lakshan Perera", 2508.58, 2001.05, "18/Aug/2025", "28/Aug/2025"),
-  createData(2, "Sent", "0002", "Nimali Silva", 3370.64, 2890.0, "18/Aug/2025", "28/Aug/2025"),
-  createData(3, "Sent", "0003", "Ruwan Jayasinghe", 337.07, 250.58, "18/Aug/2025", "28/Aug/2025"),
-  createData(4, "Expired", "0004", "Sanduni Fernando", 12508.72, 10200.0, "18/Aug/2025", "28/Aug/2025"),
-  createData(5, "Sent", "0005", "Kasun Abeysekera", 2508.58, 2508.58, "18/Aug/2025", "28/Aug/2025"),
-  createData(6, "Sent", "0006", "Dilani Kariyawasam", 5500.21, 4420.0, "18/Aug/2025", "28/Aug/2025"),
-  createData(7, "Sent", "0007", "Chathura Weerasingha", 4212.23, 4000.0, "18/Aug/2025", "28/Aug/2025"),
-  createData(8, "Sent", "0008", "Ishara Senanayake", 2508.0, 2000.0, "18/Aug/2025", "28/Aug/2025"),
-  createData(8, "Expired", "0009", "Sajith Ranasinghe", 2508.0, 2000.0, "18/Aug/2025", "28/Aug/2025"),
-];
+import axios from "axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Status Chip Component
 function StatusChip({ status }) {
@@ -65,25 +51,38 @@ function QuotationRow({
   anchorEl,
   menuRowId,
   handleMenuClose,
+  onView,
+  onEdit,
+  onDelete,
 }) {
+  // Format date helper
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   return (
     <TableRow hover role="checkbox" selected={isSelected} aria-checked={isSelected}>
       <TableCell padding="checkbox">
         <Checkbox
           color="primary"
           checked={isSelected}
-          onClick={() => handleClick(row.id)}
+          onClick={() => handleClick(row.quotationId || row.id)}
         />
       </TableCell>
       <TableCell>
-        <StatusChip status={row.status} />
+        <StatusChip status={row.status || "Sent"} />
       </TableCell>
-      <TableCell>{row.number}</TableCell>
-      <TableCell>{row.client}</TableCell>
-      <TableCell>{row.amount.toLocaleString()}</TableCell>
-      <TableCell>{row.netAmount.toLocaleString()}</TableCell>
-      <TableCell>{row.date}</TableCell>
-      <TableCell>{row.validUntil}</TableCell>
+      <TableCell>{row.quotationNumber || row.number || "N/A"}</TableCell>
+      <TableCell>{row.clientName || row.client || "N/A"}</TableCell>
+      <TableCell>{(row.netAmount || row.NetAmount || row.amount || row.Amount || 0).toLocaleString()}</TableCell>
+      <TableCell>{formatDate(row.quoteDate || row.date)}</TableCell>
+      <TableCell>{formatDate(row.validUntil)}</TableCell>
       <TableCell align="center">
         <Button
           variant="contained"
@@ -94,18 +93,18 @@ function QuotationRow({
             textTransform: "none",
             "&:hover": { backgroundColor: "#333333" },
           }}
-          onClick={(e) => handleMenuOpen(e, row.id)}
+          onClick={(e) => handleMenuOpen(e, row.quotationId || row.id)}
         >
           Actions
         </Button>
         <Menu
           anchorEl={anchorEl}
-          open={menuRowId === row.id}
+          open={menuRowId === (row.quotationId || row.id)}
           onClose={handleMenuClose}
         >
-          <MenuItem onClick={handleMenuClose}>View</MenuItem>
-          <MenuItem onClick={handleMenuClose}>Edit</MenuItem>
-          <MenuItem onClick={handleMenuClose}>Delete</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onView(row); }}>View</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onEdit(row); }}>Edit</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onDelete(row); }} sx={{ color: "red" }}>Delete</MenuItem>
         </Menu>
       </TableCell>
     </TableRow>
@@ -113,20 +112,42 @@ function QuotationRow({
 }
 
 export default function QuotationList() {
-  const [rows, setRows] = React.useState(rowsData);
+  const [rows, setRows] = React.useState([]);
   const [selected, setSelected] = React.useState([]);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [menuRowId, setMenuRowId] = React.useState(null);
   const [filter, setFilter] = React.useState("");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
   const navigate = useNavigate();
+
+  // Fetch quotations from API
+  React.useEffect(() => {
+    const fetchQuotations = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:5264/api/Quotations");
+        console.log("Quotations data:", response.data);
+        setRows(response.data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching quotations:", err);
+        setError(err.response?.data?.message || "Failed to fetch quotations");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuotations();
+  }, []);
 
   // Filter Logic
   const filteredRows = rows.filter(
     (row) =>
-      row.client.toLowerCase().includes(filter.toLowerCase()) ||
-      row.number.toLowerCase().includes(filter.toLowerCase())
+      (row.clientName || row.client || "").toLowerCase().includes(filter.toLowerCase()) ||
+      (row.quotationNumber || row.number || "").toLowerCase().includes(filter.toLowerCase())
   );
 
   // Pagination Logic
@@ -159,6 +180,9 @@ export default function QuotationList() {
 
   const isSelected = (id) => selected.indexOf(id) !== -1;
 
+  // Get row ID (handles different field names)
+  const getRowId = (row) => row.quotationId || row.id;
+
   // Menu Handlers
   const handleMenuOpen = (event, id) => {
     setAnchorEl(event.currentTarget);
@@ -168,6 +192,183 @@ export default function QuotationList() {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setMenuRowId(null);
+  };
+
+  // Generate PDF for a quotation
+  const generateQuotationPDF = (quotation) => {
+    const doc = new jsPDF();
+    
+    // Company Header
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("QUOTATION", 105, 25, { align: "center" });
+    
+    // Company Info (Left Side)
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Your Company Name", 14, 45);
+    doc.text("123 Business Street", 14, 51);
+    doc.text("City, State 12345", 14, 57);
+    doc.text("Phone: (123) 456-7890", 14, 63);
+    doc.text("Email: info@company.com", 14, 69);
+    
+    // Format date helper
+    const formatPdfDate = (dateString) => {
+      if (!dateString) return "N/A";
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    };
+    
+    // Quote Details (Right Side)
+    doc.setFont("helvetica", "bold");
+    doc.text("Quote Details", 140, 45);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Quote #: ${quotation.quotationNumber || quotation.quoteNumber || "N/A"}`, 140, 51);
+    doc.text(`Date: ${formatPdfDate(quotation.quoteDate)}`, 140, 57);
+    doc.text(`Valid Until: ${formatPdfDate(quotation.validUntil)}`, 140, 63);
+    doc.text(`PO #: ${quotation.poNumber || "N/A"}`, 140, 69);
+    
+    // Client Info
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bill To:", 14, 85);
+    doc.setFont("helvetica", "normal");
+    doc.text(quotation.clientName || "Client Name", 14, 91);
+    
+    // Horizontal Line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 98, 196, 98);
+    
+    // Items Table
+    const items = quotation.items || quotation.Items || [];
+    const tableData = items.map((item) => [
+      item.itemName || item.ItemName || item.item || "",
+      item.description || item.Description || "",
+      parseFloat(item.unitCost || item.UnitCost || 0).toFixed(2),
+      item.quantity || item.Quantity || 0,
+      parseFloat(item.lineTotal || item.LineTotal || 0).toFixed(2),
+    ]);
+    
+    autoTable(doc, {
+      startY: 105,
+      head: [["Item", "Description", "Unit Cost", "Qty", "Line Total"]],
+      body: tableData.length > 0 ? tableData : [["No items", "", "", "", ""]],
+      theme: "striped",
+      headStyles: {
+        fillColor: [51, 51, 51],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+      },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 25, halign: "right" },
+        3: { cellWidth: 20, halign: "center" },
+        4: { cellWidth: 30, halign: "right" },
+      },
+    });
+    
+    // Totals Section
+    const finalY = doc.lastAutoTable.finalY + 10;
+    
+    // Calculate subtotal from items if not provided
+    const calculatedSubtotal = items.reduce((sum, item) => {
+      return sum + parseFloat(item.lineTotal || item.LineTotal || 0);
+    }, 0);
+    
+    const subtotal = quotation.subtotal || quotation.Subtotal || calculatedSubtotal || 0;
+    const discountAmount = quotation.discountAmount || quotation.DiscountAmount || 0;
+    const total = quotation.netAmount || quotation.NetAmount || quotation.amount || quotation.Amount || (subtotal - discountAmount) || 0;
+    
+    doc.setFontSize(10);
+    doc.text("Subtotal:", 140, finalY);
+    doc.text(`$${parseFloat(subtotal).toFixed(2)}`, 196, finalY, { align: "right" });
+    
+    if (discountAmount > 0) {
+      doc.text("Discount:", 140, finalY + 6);
+      doc.text(`-$${parseFloat(discountAmount).toFixed(2)}`, 196, finalY + 6, { align: "right" });
+    }
+    
+    doc.setDrawColor(0, 0, 0);
+    doc.line(140, finalY + (discountAmount > 0 ? 10 : 4), 196, finalY + (discountAmount > 0 ? 10 : 4));
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Total:", 140, finalY + (discountAmount > 0 ? 18 : 12));
+    doc.text(`$${parseFloat(total).toFixed(2)}`, 196, finalY + (discountAmount > 0 ? 18 : 12), { align: "right" });
+    
+    // Footer
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 100, 100);
+    doc.text("Thank you for your business!", 105, pageHeight - 20, { align: "center" });
+    doc.text("This quotation is valid for 30 days from the date of issue.", 105, pageHeight - 14, { align: "center" });
+    
+    return doc;
+  };
+
+  // View quotation - open PDF in new tab
+  const handleView = async (row) => {
+    try {
+      // Fetch full quotation details if needed
+      const response = await axios.get(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`);
+      const quotation = response.data;
+      
+      const doc = generateQuotationPDF(quotation);
+      
+      // Open PDF in new tab
+      const pdfDataUri = doc.output("datauristring");
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(
+          `<iframe width="100%" height="100%" src="${pdfDataUri}" style="border:none;"></iframe>`
+        );
+        newWindow.document.title = `Quotation_${quotation.quotationNumber || quotation.quoteNumber || "view"}`;
+      } else {
+        alert("Popup blocked! Please allow popups for this site.");
+      }
+    } catch (error) {
+      console.error("Error viewing quotation:", error);
+      alert("Failed to load quotation details.");
+    }
+  };
+
+  // Edit quotation - navigate to edit form with quotation data
+  const handleEdit = async (row) => {
+    try {
+      // Fetch full quotation details
+      const response = await axios.get(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`);
+      const quotation = response.data;
+      navigate(`/dashboard/edit-quote/${row.quotationId || row.id}`, { state: { quotation } });
+    } catch (error) {
+      console.error("Error fetching quotation for edit:", error);
+      alert("Failed to load quotation details for editing.");
+    }
+  };
+
+  // Delete quotation
+  const handleDelete = async (row) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete quotation #${row.quotationNumber || row.quoteNumber || row.id}?\n\nThis action cannot be undone.`
+    );
+    
+    if (confirmed) {
+      try {
+        await axios.delete(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`);
+        // Remove from state
+        setRows((prevRows) => prevRows.filter((r) => (r.quotationId || r.id) !== (row.quotationId || row.id)));
+        alert("Quotation deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting quotation:", error);
+        alert("Failed to delete quotation. Please try again.");
+      }
+    }
   };
 
   // Pagination Handlers
@@ -247,7 +448,6 @@ export default function QuotationList() {
                 <TableCell>Status</TableCell>
                 <TableCell>Number</TableCell>
                 <TableCell>Client</TableCell>
-                <TableCell>Amount</TableCell>
                 <TableCell>Net Amount</TableCell>
                 <TableCell>Date</TableCell>
                 <TableCell>Valid Until</TableCell>
@@ -255,23 +455,38 @@ export default function QuotationList() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedRows.length === 0 ? (
+              {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={8} align="center">
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ color: "red" }}>
+                    Error: {error}
+                  </TableCell>
+                </TableRow>
+              ) : paginatedRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
                     No quotations available
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedRows.map((row) => (
                   <QuotationRow
-                    key={row.id}
+                    key={getRowId(row)}
                     row={row}
-                    isSelected={isSelected(row.id)}
+                    isSelected={isSelected(getRowId(row))}
                     handleClick={handleClick}
                     handleMenuOpen={handleMenuOpen}
                     anchorEl={anchorEl}
                     menuRowId={menuRowId}
                     handleMenuClose={handleMenuClose}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                   />
                 ))
               )}

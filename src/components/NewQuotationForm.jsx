@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -24,6 +24,8 @@ import {
   Switch,
   useMediaQuery,
   useTheme,
+  Autocomplete,
+  CircularProgress,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import AddIcon from "@mui/icons-material/Add";
@@ -31,11 +33,28 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import axios from "axios";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 
 export default function NewQuotationForm() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
+  
   const [tabValue, setTabValue] = useState(0);
   const [items, setItems] = useState([]);
   const [inclusiveTaxes, setInclusiveTaxes] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  // Clients state
+  const [clients, setClients] = useState([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  
+  // Items/Products state
+  const [availableItems, setAvailableItems] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(false);
   
   // Form state for quotation details
   const [quoteData, setQuoteData] = useState({
@@ -51,6 +70,104 @@ export default function NewQuotationForm() {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Load quotation data for edit mode
+  useEffect(() => {
+    const loadQuotationData = async () => {
+      if (!isEditMode) return;
+      
+      // Check if data is passed via location state
+      if (location.state?.quotation) {
+        const q = location.state.quotation;
+        populateFormData(q);
+        return;
+      }
+      
+      // Otherwise fetch from API
+      try {
+        setLoading(true);
+        const response = await axios.get(`http://localhost:5264/api/Quotations/${id}`);
+        populateFormData(response.data);
+      } catch (error) {
+        console.error("Error loading quotation:", error);
+        alert("Failed to load quotation data.");
+        navigate("/dashboard/quotes");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const populateFormData = (q) => {
+      // Format dates for input fields (YYYY-MM-DD)
+      const formatDateForInput = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        return date.toISOString().split("T")[0];
+      };
+
+      setQuoteData({
+        client: q.clientName || q.ClientName || "",
+        quoteDate: formatDateForInput(q.quoteDate || q.QuoteDate),
+        validUntil: formatDateForInput(q.validUntil || q.ValidUntil),
+        partialDeposit: q.partialDeposit || q.PartialDeposit || "",
+        quoteNumber: q.quotationNumber || q.quoteNumber || q.QuoteNumber || "",
+        poNumber: q.poNumber || q.PoNumber || "",
+        discountType: q.discountType || q.DiscountType || "amount",
+        discount: q.discount || q.Discount || 0,
+      });
+
+      // Load items
+      const quotationItems = q.items || q.Items || [];
+      const formattedItems = quotationItems.map((item, index) => ({
+        id: item.id || item.Id || index + 1,
+        item: item.itemName || item.ItemName || item.item || "",
+        description: item.description || item.Description || "",
+        unitCost: item.unitCost || item.UnitCost || 0,
+        quantity: item.quantity || item.Quantity || 0,
+        lineTotal: item.lineTotal || item.LineTotal || 0,
+        selectedItem: null,
+      }));
+      setItems(formattedItems);
+
+      setInclusiveTaxes(q.inclusiveTaxes || q.InclusiveTaxes || false);
+    };
+
+    loadQuotationData();
+  }, [id, isEditMode, location.state, navigate]);
+
+  // Fetch clients from API
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setLoadingClients(true);
+        const response = await axios.get("http://localhost:5264/api/clients");
+        setClients(response.data);
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+      } finally {
+        setLoadingClients(false);
+      }
+    };
+
+    fetchClients();
+  }, []);
+
+  // Fetch items from API
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoadingItems(true);
+        const response = await axios.get("http://localhost:5264/api/items");
+        setAvailableItems(response.data);
+      } catch (error) {
+        console.error("Error fetching items:", error);
+      } finally {
+        setLoadingItems(false);
+      }
+    };
+
+    fetchItems();
+  }, []);
 
   // Handle quote data changes
   const handleQuoteDataChange = (field, value) => {
@@ -207,8 +324,35 @@ export default function NewQuotationForm() {
   const handleAddItem = () => {
     setItems([
       ...items,
-      { item: "", description: "", unitCost: "", quantity: "", lineTotal: "" },
+      { item: "", description: "", unitCost: "", quantity: "", lineTotal: "", selectedItem: null },
     ]);
+  };
+
+  // Handle item selection from autocomplete
+  const handleItemSelect = (index, selectedItem) => {
+    const updatedItems = [...items];
+    if (selectedItem) {
+      updatedItems[index] = {
+        ...updatedItems[index],
+        item: selectedItem.item || "",
+        description: selectedItem.description || "",
+        unitCost: selectedItem.price || "",
+        selectedItem: selectedItem,
+      };
+      // Recalculate line total if quantity exists
+      const unitCost = parseFloat(updatedItems[index].unitCost) || 0;
+      const quantity = parseFloat(updatedItems[index].quantity) || 0;
+      updatedItems[index].lineTotal = unitCost * quantity;
+    } else {
+      updatedItems[index] = {
+        ...updatedItems[index],
+        item: "",
+        description: "",
+        unitCost: "",
+        selectedItem: null,
+      };
+    }
+    setItems(updatedItems);
   };
 
   // Update field values in a product row
@@ -231,15 +375,108 @@ export default function NewQuotationForm() {
     setItems(updatedItems);
   };
 
+  // Save quotation to API
+  const handleSaveQuote = async () => {
+    // Validation
+    if (!quoteData.client) {
+      alert("Please select a client");
+      return;
+    }
+    if (!quoteData.quoteNumber) {
+      alert("Please enter a quote number");
+      return;
+    }
+    if (items.length === 0) {
+      alert("Please add at least one item");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const quotationPayload = {
+        QuoteNumber: quoteData.quoteNumber,
+        ClientName: quoteData.client,
+        QuoteDate: quoteData.quoteDate || new Date().toISOString().split("T")[0],
+        ValidUntil: quoteData.validUntil || null,
+        PoNumber: quoteData.poNumber || null,
+        PartialDeposit: parseFloat(quoteData.partialDeposit) || 0,
+        DiscountType: quoteData.discountType,
+        Discount: parseFloat(quoteData.discount) || 0,
+        Subtotal: calculateSubtotal(),
+        DiscountAmount: calculateDiscount(),
+        Amount: calculateTotal(),
+        NetAmount: calculateTotal(),
+        Status: "Sent",
+        InclusiveTaxes: inclusiveTaxes,
+        Items: items.map((item) => ({
+          ItemName: item.item,
+          Description: item.description,
+          UnitCost: parseFloat(item.unitCost) || 0,
+          Quantity: parseInt(item.quantity) || 0,
+          LineTotal: parseFloat(item.lineTotal) || 0,
+        })),
+      };
+
+      console.log("Saving quotation:", quotationPayload);
+
+      let response;
+      if (isEditMode) {
+        // Update existing quotation
+        response = await axios.put(
+          `http://localhost:5264/api/Quotations/${id}`,
+          quotationPayload
+        );
+        console.log("Quotation updated:", response.data);
+        alert("Quotation updated successfully!");
+      } else {
+        // Create new quotation
+        response = await axios.post(
+          "http://localhost:5264/api/Quotations",
+          quotationPayload
+        );
+        console.log("Quotation saved:", response.data);
+        alert("Quotation saved successfully!");
+      }
+      navigate("/dashboard/quotes");
+    } catch (error) {
+      console.error("Error saving quotation:", error);
+      console.error("Error details:", error.response?.data);
+      
+      let errorMessage = "Failed to save quotation. Please try again.";
+      if (error.response?.data) {
+        if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        } else if (error.response.data.errors) {
+          errorMessage = Object.values(error.response.data.errors).flat().join(", ");
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+      alert(errorMessage);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Box sx={{ maxWidth: "1400px", mx: "auto", pb: 5 }}>
-      {/* Breadcrumb */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-        <HomeIcon fontSize="small" />
-        <Typography variant="body2" color="text.secondary">
-          / Quotes / New Quote
-        </Typography>
-      </Box>
+      {/* Loading state for edit mode */}
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+      
+      {!loading && (
+        <>
+          {/* Breadcrumb */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+            <HomeIcon fontSize="small" />
+            <Typography variant="body2" color="text.secondary">
+              / Quotes / {isEditMode ? "Edit Quote" : "New Quote"}
+            </Typography>
+          </Box>
 
   
       {/* Tabs */}
@@ -270,22 +507,54 @@ export default function NewQuotationForm() {
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 Client
               </Typography>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel shrink>Select Client</InputLabel>
-                <Select
-                  value={quoteData.client}
-                  onChange={(e) => handleQuoteDataChange("client", e.target.value)}
-                  displayEmpty
-                  label="Select Client"
-                >
-                  <MenuItem value="">
-                    <em>None</em>
-                  </MenuItem>
-                  <MenuItem value="Client 1">Client 1</MenuItem>
-                  <MenuItem value="Client 2">Client 2</MenuItem>
-                </Select>
-          </FormControl>
-
+              <Autocomplete
+                options={clients}
+                getOptionLabel={(option) => 
+                  typeof option === 'string' 
+                    ? option 
+                    : option.name || option.clientName || ''
+                }
+                loading={loadingClients}
+                value={clients.find(c => (c.name || c.clientName) === quoteData.client) || null}
+                onChange={(event, newValue) => {
+                  handleQuoteDataChange("client", newValue ? (newValue.name || newValue.clientName) : "");
+                }}
+                inputValue={quoteData.client}
+                onInputChange={(event, newInputValue) => {
+                  handleQuoteDataChange("client", newInputValue);
+                }}
+                freeSolo
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select or Type Client Name"
+                    placeholder="Start typing to search..."
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingClients ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.clientId || option.id}>
+                    <Box>
+                      <Typography variant="body1">
+                        {option.name || option.clientName}
+                      </Typography>
+                      {option.companyName && (
+                        <Typography variant="caption" color="text.secondary">
+                          {option.companyName}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+              />
             </CardContent>
           </Card>
 
@@ -405,13 +674,78 @@ export default function NewQuotationForm() {
                     items.map((row, index) => (
                       <TableRow key={index}>
                         <TableCell>
-                          <TextField
-                            placeholder="Item"
-                            value={row.item}
-                            onChange={(e) =>
-                              handleItemChange(index, "item", e.target.value)
+                          <Autocomplete
+                            options={availableItems}
+                            getOptionLabel={(option) =>
+                              typeof option === "string"
+                                ? option
+                                : option.item || ""
                             }
+                            loading={loadingItems}
+                            value={row.selectedItem || null}
+                            onChange={(event, newValue) => {
+                              handleItemSelect(index, newValue);
+                            }}
+                            inputValue={row.item}
+                            onInputChange={(event, newInputValue) => {
+                              handleItemChange(index, "item", newInputValue);
+                            }}
+                            freeSolo
                             size="small"
+                            sx={{ minWidth: 150 }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                placeholder="Type item name..."
+                                InputProps={{
+                                  ...params.InputProps,
+                                  endAdornment: (
+                                    <>
+                                      {loadingItems ? (
+                                        <CircularProgress color="inherit" size={16} />
+                                      ) : null}
+                                      {params.InputProps.endAdornment}
+                                    </>
+                                  ),
+                                }}
+                              />
+                            )}
+                            renderOption={(props, option) => {
+                              const quantity = option.qty ?? 0;
+                              const isLowStock = quantity < 10;
+                              return (
+                                <li {...props} key={option.id}>
+                                  <Box sx={{ width: "100%" }}>
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                      <Typography variant="body2">
+                                        {option.item}
+                                      </Typography>
+                                      {isLowStock && (
+                                        <Typography
+                                          variant="caption"
+                                          sx={{
+                                            color: "white",
+                                            backgroundColor: "#d32f2f",
+                                            px: 1,
+                                            py: 0.25,
+                                            borderRadius: 1,
+                                            fontSize: "10px",
+                                          }}
+                                        >
+                                          Low: {quantity}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                    {option.description && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                                        {option.description.substring(0, 50)}
+                                        {option.description.length > 50 ? "..." : ""}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </li>
+                              );
+                            }}
                           />
                         </TableCell>
                         <TableCell>
@@ -537,6 +871,8 @@ export default function NewQuotationForm() {
               </Button>
               <Button
                 variant="contained"
+                onClick={handleSaveQuote}
+                disabled={saving}
                 sx={{
                   backgroundColor: "#4a7c59",
                   color: "white",
@@ -545,7 +881,7 @@ export default function NewQuotationForm() {
                   "&:hover": { backgroundColor: "#386641" },
                 }}
               >
-                Save Quote
+                {saving ? "Saving..." : isEditMode ? "Update Quote" : "Save Quote"}
               </Button>
             </Box>
           </Box>
@@ -604,6 +940,8 @@ export default function NewQuotationForm() {
             </Grid>
           </CardContent>
         </Card>
+      )}
+        </>
       )}
     </Box>
   );
