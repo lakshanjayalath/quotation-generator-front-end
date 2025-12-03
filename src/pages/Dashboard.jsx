@@ -61,6 +61,7 @@ export default function Dashboard() {
             <Route path="new-client" element={<NewClientForm />} />
             <Route path="new-item" element={<NewItemForm />} />
             <Route path="new-quote" element={<NewQuotationForm />} />
+            <Route path="edit-quote/:id" element={<NewQuotationForm />} />
             <Route path="reports" element={<Report />} />
 
             {/* Settings Page */}
