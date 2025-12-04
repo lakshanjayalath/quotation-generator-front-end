@@ -270,11 +270,11 @@ export default function NewQuotationForm() {
     
     doc.setFontSize(10);
     doc.text("Subtotal:", 140, finalY);
-    doc.text(`$${subtotal.toFixed(2)}`, 196, finalY, { align: "right" });
+    doc.text(`LKR ${subtotal.toFixed(2)}`, 196, finalY, { align: "right" });
     
     if (discount > 0) {
-      doc.text(`Discount (${quoteData.discountType === "percentage" ? quoteData.discount + "%" : "$" + quoteData.discount}):`, 140, finalY + 6);
-      doc.text(`-$${discount.toFixed(2)}`, 196, finalY + 6, { align: "right" });
+      doc.text(`Discount (${quoteData.discountType === "percentage" ? quoteData.discount + "%" : "LKR " + quoteData.discount}):`, 140, finalY + 6);
+      doc.text(`-LKR ${discount.toFixed(2)}`, 196, finalY + 6, { align: "right" });
     }
     
     doc.setDrawColor(0, 0, 0);
@@ -283,13 +283,13 @@ export default function NewQuotationForm() {
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Total:", 140, finalY + (discount > 0 ? 18 : 12));
-    doc.text(`$${total.toFixed(2)}`, 196, finalY + (discount > 0 ? 18 : 12), { align: "right" });
+    doc.text(`LKR ${total.toFixed(2)}`, 196, finalY + (discount > 0 ? 18 : 12), { align: "right" });
     
     // Partial/Deposit
     if (quoteData.partialDeposit) {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text(`Deposit Required: $${parseFloat(quoteData.partialDeposit).toFixed(2)}`, 140, finalY + (discount > 0 ? 26 : 20));
+      doc.text(`Deposit Required: LKR ${parseFloat(quoteData.partialDeposit).toFixed(2)}`, 140, finalY + (discount > 0 ? 26 : 20));
     }
     
     // Footer
@@ -332,17 +332,23 @@ export default function NewQuotationForm() {
   const handleItemSelect = (index, selectedItem) => {
     const updatedItems = [...items];
     if (selectedItem) {
+      // Parse price - handle formatted strings like "20,000 LKR"
+      let priceValue = selectedItem.price || selectedItem.unitCost || selectedItem.Price || selectedItem.UnitCost || 0;
+      if (typeof priceValue === 'string') {
+        // Remove currency text and commas, extract numeric value
+        priceValue = parseFloat(priceValue.replace(/[^0-9.-]/g, '')) || 0;
+      }
+      const unitCost = parseFloat(priceValue) || 0;
+      const quantity = parseFloat(updatedItems[index].quantity) || 0;
+      
       updatedItems[index] = {
         ...updatedItems[index],
-        item: selectedItem.item || "",
+        item: selectedItem.item || selectedItem.name || "",
         description: selectedItem.description || "",
-        unitCost: selectedItem.price || "",
+        unitCost: unitCost,
         selectedItem: selectedItem,
+        lineTotal: unitCost * quantity,
       };
-      // Recalculate line total if quantity exists
-      const unitCost = parseFloat(updatedItems[index].unitCost) || 0;
-      const quantity = parseFloat(updatedItems[index].quantity) || 0;
-      updatedItems[index].lineTotal = unitCost * quantity;
     } else {
       updatedItems[index] = {
         ...updatedItems[index],
@@ -834,20 +840,20 @@ export default function NewQuotationForm() {
                 <Box sx={{ width: "300px" }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
                     <Typography>Subtotal:</Typography>
-                    <Typography fontWeight="bold">${calculateSubtotal().toFixed(2)}</Typography>
+                    <Typography fontWeight="bold">LKR {calculateSubtotal().toFixed(2)}</Typography>
                   </Box>
                   {calculateDiscount() > 0 && (
                     <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
                       <Typography>
-                        Discount ({quoteData.discountType === "percentage" ? `${quoteData.discount}%` : `$${quoteData.discount}`}):
+                        Discount ({quoteData.discountType === "percentage" ? `${quoteData.discount}%` : `LKR ${quoteData.discount}`}):
                       </Typography>
-                      <Typography color="error">-${calculateDiscount().toFixed(2)}</Typography>
+                      <Typography color="error">-LKR {calculateDiscount().toFixed(2)}</Typography>
                     </Box>
                   )}
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                     <Typography variant="h6" fontWeight="bold">Total:</Typography>
-                    <Typography variant="h6" fontWeight="bold">${calculateTotal().toFixed(2)}</Typography>
+                    <Typography variant="h6" fontWeight="bold">LKR {calculateTotal().toFixed(2)}</Typography>
                   </Box>
                 </Box>
               </Box>

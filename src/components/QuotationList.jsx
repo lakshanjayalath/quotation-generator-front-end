@@ -29,13 +29,30 @@ import autoTable from "jspdf-autotable";
 
 // Status Chip Component
 function StatusChip({ status }) {
+  const getStatusColor = () => {
+    switch (status) {
+      case "Sent":
+        return { bg: "#CADF9A", color: "#555555" };
+      case "Accepted":
+        return { bg: "#4CAF50", color: "#FFFFFF" };
+      case "Declined":
+        return { bg: "#F44336", color: "#FFFFFF" };
+      case "Expired":
+        return { bg: "#DEA3A4", color: "#555555" };
+      default:
+        return { bg: "#E0E0E0", color: "#555555" };
+    }
+  };
+
+  const colors = getStatusColor();
+
   return (
     <Chip
       label={status}
       size="small"
       sx={{
-        backgroundColor: status === "Expired" ? "#DEA3A4" : "#CADF9A",
-        color: status === "Expired" ? "#555555" : "#555555",
+        backgroundColor: colors.bg,
+        color: colors.color,
         fontWeight: 500,
       }}
     />
@@ -54,6 +71,7 @@ function QuotationRow({
   onView,
   onEdit,
   onDelete,
+  onChangeStatus,
 }) {
   // Format date helper
   const formatDate = (dateString) => {
@@ -78,7 +96,7 @@ function QuotationRow({
       <TableCell>
         <StatusChip status={row.status || "Sent"} />
       </TableCell>
-      <TableCell>{row.quotationNumber || row.number || "N/A"}</TableCell>
+      <TableCell>{row.quoteNumber || row.quotationNumber || row.number || "N/A"}</TableCell>
       <TableCell>{row.clientName || row.client || "N/A"}</TableCell>
       <TableCell>{(row.netAmount || row.NetAmount || row.amount || row.Amount || 0).toLocaleString()}</TableCell>
       <TableCell>{formatDate(row.quoteDate || row.date)}</TableCell>
@@ -104,6 +122,10 @@ function QuotationRow({
         >
           <MenuItem onClick={() => { handleMenuClose(); onView(row); }}>View</MenuItem>
           <MenuItem onClick={() => { handleMenuClose(); onEdit(row); }}>Edit</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onChangeStatus(row, "Sent"); }}>Mark as Sent</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onChangeStatus(row, "Accepted"); }}>Mark as Accepted</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onChangeStatus(row, "Declined"); }}>Mark as Declined</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onChangeStatus(row, "Expired"); }}>Mark as Expired</MenuItem>
           <MenuItem onClick={() => { handleMenuClose(); onDelete(row); }} sx={{ color: "red" }}>Delete</MenuItem>
         </Menu>
       </TableCell>
@@ -287,11 +309,11 @@ export default function QuotationList() {
     
     doc.setFontSize(10);
     doc.text("Subtotal:", 140, finalY);
-    doc.text(`$${parseFloat(subtotal).toFixed(2)}`, 196, finalY, { align: "right" });
+    doc.text(`LKR ${parseFloat(subtotal).toFixed(2)}`, 196, finalY, { align: "right" });
     
     if (discountAmount > 0) {
       doc.text("Discount:", 140, finalY + 6);
-      doc.text(`-$${parseFloat(discountAmount).toFixed(2)}`, 196, finalY + 6, { align: "right" });
+      doc.text(`-LKR ${parseFloat(discountAmount).toFixed(2)}`, 196, finalY + 6, { align: "right" });
     }
     
     doc.setDrawColor(0, 0, 0);
@@ -300,7 +322,7 @@ export default function QuotationList() {
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Total:", 140, finalY + (discountAmount > 0 ? 18 : 12));
-    doc.text(`$${parseFloat(total).toFixed(2)}`, 196, finalY + (discountAmount > 0 ? 18 : 12), { align: "right" });
+    doc.text(`LKR ${parseFloat(total).toFixed(2)}`, 196, finalY + (discountAmount > 0 ? 18 : 12), { align: "right" });
     
     // Footer
     const pageHeight = doc.internal.pageSize.height;
@@ -368,6 +390,27 @@ export default function QuotationList() {
         console.error("Error deleting quotation:", error);
         alert("Failed to delete quotation. Please try again.");
       }
+    }
+  };
+
+  // Change quotation status
+  const handleChangeStatus = async (row, newStatus) => {
+    try {
+      await axios.patch(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}/status`, {
+        Status: newStatus
+      });
+      // Update in state
+      setRows((prevRows) =>
+        prevRows.map((r) =>
+          (r.quotationId || r.id) === (row.quotationId || row.id)
+            ? { ...r, status: newStatus }
+            : r
+        )
+      );
+      alert(`Quotation status changed to ${newStatus}!`);
+    } catch (error) {
+      console.error("Error changing quotation status:", error);
+      alert("Failed to change quotation status. Please try again.");
     }
   };
 
@@ -487,6 +530,7 @@ export default function QuotationList() {
                     onView={handleView}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onChangeStatus={handleChangeStatus}
                   />
                 ))
               )}
