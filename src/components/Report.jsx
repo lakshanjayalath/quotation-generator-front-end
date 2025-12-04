@@ -11,9 +11,26 @@ import {
   Switch,
   FormControlLabel,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
+import PrintIcon from "@mui/icons-material/Print";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Link as RouterLink } from "react-router-dom";
+import axios from "axios";
 
 export default function Report() {
   const [formData, setFormData] = useState({
@@ -37,6 +54,11 @@ export default function Report() {
     search: "",
   });
 
+  const [reportData, setReportData] = useState([]);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
+
   const handleChange = (field) => (event) => {
     const value =
       event.target.type === "checkbox"
@@ -44,6 +66,112 @@ export default function Report() {
         : event.target.value;
 
     setFormData({ ...formData, [field]: value });
+  };
+
+  // Fetch report data from backend
+  const fetchReportData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post("http://localhost:5264/api/reports/generate", {
+        reportType: formData.reportType,
+        filters: {
+          activity: formData.activity,
+          status: formData.status,
+          client: formData.client,
+          user: formData.user,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          minAmount: formData.minAmount,
+          maxAmount: formData.maxAmount,
+          search: formData.search,
+          includeDeleted: formData.includeDeleted,
+        },
+        options: {
+          groupBy: formData.groupBy,
+          sortBy: formData.sortBy,
+        },
+      });
+      
+      setReportData(response.data);
+      setViewDialogOpen(true);
+      setSnackbar({ open: true, message: "Report data loaded successfully", severity: "success" });
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      setSnackbar({ 
+        open: true, 
+        message: `Failed to load report: ${error.response?.data?.message || error.message}`, 
+        severity: "error" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Export report data
+  const handleExport = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "http://localhost:5264/api/reports/export",
+        {
+          reportType: formData.reportType,
+          filters: {
+            activity: formData.activity,
+            status: formData.status,
+            client: formData.client,
+            user: formData.user,
+            startDate: formData.startDate,
+            endDate: formData.endDate,
+            minAmount: formData.minAmount,
+            maxAmount: formData.maxAmount,
+            search: formData.search,
+            includeDeleted: formData.includeDeleted,
+          },
+          options: {
+            groupBy: formData.groupBy,
+            sortBy: formData.sortBy,
+            format: formData.output,
+            sendEmail: formData.sendEmail,
+          },
+        },
+        { responseType: "blob" }
+      );
+
+      // Create a download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `report_${formData.reportType}_${new Date().getTime()}.${getFileExtension(formData.output)}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+
+      setSnackbar({ open: true, message: `Report exported as ${formData.output}`, severity: "success" });
+    } catch (error) {
+      console.error("Error exporting report:", error);
+      setSnackbar({ 
+        open: true, 
+        message: `Failed to export report: ${error.response?.data?.message || error.message}`, 
+        severity: "error" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Print report
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Get file extension based on format
+  const getFileExtension = (format) => {
+    const extensions = {
+      PDF: "pdf",
+      Excel: "xlsx",
+      CSV: "csv",
+    };
+    return extensions[format] || "txt";
   };
 
   // TextField styling
@@ -314,18 +442,162 @@ export default function Report() {
         </Box>
 
         {/* Export Button */}
-        <Box sx={{ mt: 4, textAlign: "right" }}>
+        <Box sx={{ mt: 4, textAlign: "right", display: "flex", gap: 2, justifyContent: "flex-end" }}>
+          <Button
+            variant="outlined"
+            startIcon={<VisibilityIcon />}
+            onClick={fetchReportData}
+            disabled={loading}
+            sx={{
+              borderColor: "#BC4749",
+              color: "#BC4749",
+              "&:hover": { borderColor: "#a43a3f", color: "#a43a3f" },
+            }}
+          >
+            {loading ? "Loading..." : "View"}
+          </Button>
+
+          <Button
+            variant="outlined"
+            startIcon={<PrintIcon />}
+            onClick={handlePrint}
+            disabled={reportData.length === 0}
+            sx={{
+              borderColor: "#4a7c59",
+              color: "#4a7c59",
+              "&:hover": { borderColor: "#386641", color: "#386641" },
+            }}
+          >
+            Print
+          </Button>
+
           <Button
             variant="contained"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleExport}
+            disabled={loading || reportData.length === 0}
             sx={{
               bgcolor: "#4a7c59",
               "&:hover": { bgcolor: "#386641" },
             }}
           >
-            Export
+            {loading ? "Exporting..." : "Export"}
           </Button>
         </Box>
+
+        {/* View Report Dialog */}
+        <Dialog
+          open={viewDialogOpen}
+          onClose={() => setViewDialogOpen(false)}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              maxHeight: "90vh",
+            },
+          }}
+        >
+          <DialogTitle>
+            <Typography variant="h6">
+              {formData.reportType} Report
+            </Typography>
+          </DialogTitle>
+          <DialogContent dividers>
+            {reportData.length === 0 ? (
+              <Alert severity="info">No data available for this report</Alert>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                    <TableRow>
+                      {getTableColumns(formData.reportType).map((column) => (
+                        <TableCell key={column} sx={{ fontWeight: "bold", color: "#BC4749" }}>
+                          {column}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {reportData.map((row, index) => (
+                      <TableRow key={index} hover>
+                        {getTableColumns(formData.reportType).map((column) => (
+                          <TableCell key={`${index}-${column}`}>
+                            {formatCellValue(row[column])}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setViewDialogOpen(false)}
+              sx={{ color: "#BC4749" }}
+            >
+              Close
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleExport}
+              disabled={loading}
+              sx={{ bgcolor: "#4a7c59", "&:hover": { bgcolor: "#386641" } }}
+            >
+              Export from Preview
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PrintIcon />}
+              onClick={handlePrint}
+              sx={{
+                borderColor: "#4a7c59",
+                color: "#4a7c59",
+                "&:hover": { borderColor: "#386641" },
+              }}
+            >
+              Print
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Paper>
     </Container>
   );
+}
+
+// Helper function to get table columns based on report type
+function getTableColumns(reportType) {
+  const columnMap = {
+    Activity: ["Date", "User", "Action", "Description", "Status"],
+    Invoices: ["Invoice ID", "Client", "Amount", "Date", "Status", "Due Date"],
+    Quotes: ["Quote ID", "Client", "Amount", "Date", "Status", "Expiry Date"],
+    Clients: ["Client Name", "Email", "Phone", "Address", "Status"],
+    Products: ["Product Name", "SKU", "Category", "Price", "Stock"],
+    Users: ["User Name", "Email", "Role", "Status", "Last Login"],
+  };
+  return columnMap[reportType] || ["Data"];
+}
+
+// Helper function to format cell values
+function formatCellValue(value) {
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return JSON.stringify(value);
+  if (typeof value === "number" && value.toString().includes(".")) {
+    return value.toFixed(2);
+  }
+  return value;
 }
