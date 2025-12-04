@@ -160,6 +160,7 @@ export default function Report() {
     try {
       setLoading(true);
 
+      // If header sorting is set, send it in options; otherwise dropdown sort is used
       const headerSort = tableSortBy ? `${tableSortBy} ${tableSortDir}` : null;
       const payload = buildPayload(true, headerSort);
 
@@ -167,10 +168,14 @@ export default function Report() {
         responseType: "blob",
       });
 
+      // determine file extension from output type (formData.output)
+      const ext = getFileExtension(formData.output);
+      const filename = `report_${formData.reportType}_${new Date().getTime()}.${ext}`;
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `report_${formData.reportType}_${new Date().getTime()}.${getFileExtension(formData.output)}`);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -186,9 +191,79 @@ export default function Report() {
     }
   };
 
-  // Print report
+  // Print report: open a new printable window synchronously (user gesture) to avoid popup blocking.
   const handlePrint = () => {
-    window.print();
+    if (!reportData || reportData.length === 0) {
+      setSnackbar({ open: true, message: "No data to print", severity: "info" });
+      return;
+    }
+
+    const cols = getTableColumns(formData.reportType);
+    const html = buildPrintableHtml(cols, reportData, formData.reportType);
+
+    // Open synchronously from the click handler (no features string)
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      setSnackbar({ open: true, message: "Unable to open print window (popup blocked?)", severity: "error" });
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    try {
+      printWindow.focus();
+      printWindow.print();
+      // optionally close after printing:
+      // printWindow.close();
+    } catch (e) {
+      setSnackbar({ open: true, message: "Print dialog may be blocked by browser policy", severity: "warning" });
+    }
+  };
+
+  // Helper to build printable HTML
+  const buildPrintableHtml = (columns, data, title) => {
+    const style = `
+      <style>
+        body { font-family: Arial, Helvetica, sans-serif; margin: 20px; color: #222; }
+        h1 { font-size: 20px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #f5f5f5; font-weight: bold; color: #BC4749; }
+        tr:nth-child(even) { background: #fbfbfb; }
+        .nowrap { white-space: nowrap; }
+      </style>
+    `;
+
+    const header = `<h1>${escapeHtml(title)} Report</h1><div>Generated: ${new Date().toLocaleString()}</div><br/>`;
+    const thead = `<thead><tr>${columns.map((c) => `<th>${escapeHtml(c)}</th>`).join("")}</tr></thead>`;
+    const rows = data
+      .map(
+        (r) =>
+          `<tr>${columns
+            .map((c) => `<td>${escapeHtml(cellToString(r?.[c]))}</td>`)
+            .join("")}</tr>`
+      )
+      .join("");
+
+    return `<!doctype html><html><head><meta charset="utf-8">${style}</head><body>${header}<table>${thead}<tbody>${rows}</tbody></table></body></html>`;
+  };
+
+  const cellToString = (v) => {
+    if (v === null || v === undefined) return "-";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  };
+
+  // Escape HTML entities
+  const escapeHtml = (unsafe) => {
+    return String(unsafe)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   };
 
   // File extension helper
@@ -241,15 +316,11 @@ export default function Report() {
       "User Name": "User Name",
       Role: "Role",
       "Last Login": "Last Login",
-      // Activity report columns:
-      Date: "Date",
       User: "User",
       Action: "Action",
       Description: "Description",
-      // fallback
-      default: displayColumn,
     };
-    return map[displayColumn] || map.default;
+    return map[displayColumn] || displayColumn;
   };
 
   const handleTableHeaderClick = (displayColumn) => {
