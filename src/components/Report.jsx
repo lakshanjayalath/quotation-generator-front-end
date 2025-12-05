@@ -41,6 +41,7 @@ export default function Report() {
 
     // Filters
     activity: "All",
+    actionType: "All", // New filter for Activity report
     range: "All",
     startDate: "",
     endDate: "",
@@ -140,6 +141,12 @@ export default function Report() {
       setReportData([]);
       setPageNum(0);
 
+      // Use ActivityLog API for Activity report type
+      if (formData.reportType === "Activity") {
+        await fetchActivityLogData();
+        return;
+      }
+
       const payload = buildPayload(true, overrideSort); // include options for sorting
       const response = await axios.post("http://localhost:5264/api/reports/generate", payload);
 
@@ -150,6 +157,41 @@ export default function Report() {
       console.error("Error fetching report:", error);
       const msg = error?.response?.data?.message || error?.message || "Unknown error";
       setSnackbar({ open: true, message: `Failed to load report: ${msg}`, severity: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Activity Log data from dedicated API
+  const fetchActivityLogData = async () => {
+    try {
+      // Build payload for activity log filter API
+      const payload = {
+        startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+        actionType: formData.actionType === "All" ? null : formData.actionType,
+      };
+
+      const response = await axios.post("http://localhost:5264/api/activitylogs/filter", payload);
+      
+      // Map response data to table format
+      const mappedData = Array.isArray(response.data) 
+        ? response.data.map((log) => ({
+            Date: log.timestamp ? new Date(log.timestamp).toLocaleString() : "-",
+            User: log.userName || log.user || "-",
+            ActionType: log.actionType || log.action || "-",
+            EntityName: log.entityName || log.entity || "-",
+            Description: log.description || log.details || "-",
+          }))
+        : [];
+
+      setReportData(mappedData);
+      setViewDialogOpen(true);
+      setSnackbar({ open: true, message: "Activity log data loaded successfully", severity: "success" });
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      const msg = error?.response?.data?.message || error?.message || "Unknown error";
+      setSnackbar({ open: true, message: `Failed to load activity logs: ${msg}`, severity: "error" });
     } finally {
       setLoading(false);
     }
@@ -399,6 +441,15 @@ export default function Report() {
               <MenuItem value="Login">Login</MenuItem>
             </TextField>
 
+            {formData.reportType === "Activity" && (
+              <TextField select label="Action Type" fullWidth value={formData.actionType} onChange={handleChange("actionType")} sx={{ mt: 3, ...textFieldStyle }}>
+                <MenuItem value="All">All</MenuItem>
+                <MenuItem value="Created">Created</MenuItem>
+                <MenuItem value="Updated">Updated</MenuItem>
+                <MenuItem value="Deleted">Deleted</MenuItem>
+              </TextField>
+            )}
+
             <TextField select label="Client" fullWidth value={formData.client} onChange={handleChange("client")} sx={{ mt: 3, ...textFieldStyle }}>
               <MenuItem value="All">All Clients</MenuItem>
               <MenuItem value="ClientA">Client A</MenuItem>
@@ -566,6 +617,8 @@ function mapColumnNameForBackend(displayColumn) {
     "Last Login": "Last Login",
     User: "User",
     Action: "Action",
+    ActionType: "ActionType",
+    EntityName: "EntityName",
     Description: "Description",
   };
   return map[displayColumn] || displayColumn;
@@ -574,7 +627,7 @@ function mapColumnNameForBackend(displayColumn) {
 // Helper function to get table columns based on report type
 function getTableColumns(reportType) {
   const columnMap = {
-    Activity: ["Date", "User", "Action", "Description", "Status"],
+    Activity: ["Date", "User", "ActionType", "EntityName", "Description"],
     Invoices: ["Invoice ID", "Client", "Amount", "Date", "Status", "Due Date"],
     Quotes: ["Quote ID", "Client", "Amount", "Date", "Status", "Expiry Date"],
     Clients: ["Client Name", "Email", "Phone", "Address", "Status"],
