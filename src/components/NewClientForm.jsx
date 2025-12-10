@@ -21,10 +21,15 @@ import {
 import HomeIcon from "@mui/icons-material/Home";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+// 🎯 IMPORT THE REFRESH HOOK
+import { useClientRefresh } from "../context/ClientRefreshContext"; // Ensure the path is correct
 
 export default function NewClientForm({ initialData = null, onSave }) {
   const navigate = useNavigate();
   const { id } = useParams();
+  // 🎯 USE THE REFRESH HOOK
+  const { triggerClientRefresh } = useClientRefresh();
+  
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -157,7 +162,11 @@ export default function NewClientForm({ initialData = null, onSave }) {
       } else {
         // Create new client
         await axios.post("http://localhost:5264/api/clients", payload);
+        
+        // 🎯 CRITICAL FIX: Trigger the dashboard refresh after successful creation
+        triggerClientRefresh();
       }
+      
       setShowSuccess(true);
       if (onSave) onSave(formData);
 

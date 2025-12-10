@@ -1,128 +1,226 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
+    BarChart, 
+    Bar,
+    CartesianGrid,
+    XAxis,
+    YAxis,
+    Tooltip,
+    Legend, 
+    ResponsiveContainer,
 } from "recharts";
-import { Box, Typography, MenuItem, Select } from "@mui/material";
+import { Box, Typography, MenuItem, Select, CircularProgress, Alert } from "@mui/material"; 
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import RecentTransaction from "./RecentTransaction";
-import RecentActivity from "./RecentActivity";
-import RecentPayment from "./RecentPayment";
 
-const data = [
-  { name: "1/Aug/2025", sales: 0 },
-  { name: "7/Aug/2025", sales: 500 },
-  { name: "13/Aug/2025", sales: 1000 },
-  { name: "19/Aug/2025", sales: 1500 },
-  { name: "25/Aug/2025", sales: 2000 },
-  { name: "31/Aug/2025", sales: 2500 },
-];
+// Import both custom context hooks
+import { useClientRefresh } from "../context/ClientRefreshContext";
+import { useQuotationRefresh } from "../context/QuotationRefreshContext"; 
+
+import RecentActivity from "./RecentActivity";
+import RecentClient from "./RecentClient";
+import RecentQuotation from "./RecentQuotation";
+
+// API URL for the quotation pipeline chart
+const API_URL = "http://localhost:5264/api/Dashboard/quotation-pipeline";
+
+const formatDate = (date) => {
+    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+};
 
 const Overview = ({ collapsed }) => {
-  const [currency, setCurrency] = useState('USD');
-  const [period, setPeriod] = useState('This Week');
+    // 1. Get BOTH refresh keys from context 
+    const { clientRefreshKey } = useClientRefresh();
+    const { quotationRefreshKey } = useQuotationRefresh(); 
 
-  const sidebarWidth = collapsed ? 60 : 240;
+    const [currentDate, setCurrentDate] = useState(formatDate(new Date()));
+    const [period, setPeriod] = useState('This Month'); 
+    
+    // Chart data state
+    const [chartData, setChartData] = useState([]);
+    const [loadingChart, setLoadingChart] = useState(true);
+    const [errorChart, setErrorChart] = useState(null);
 
-  return (
-    <div style={{ padding: "30px" }}>
-      {/* Greeting + Controls */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          pl: `${sidebarWidth + 20}px`,
-          pr: 4,
-          py: 2,
-          flexWrap: "wrap",
-          gap: 2,
-          transition: "padding-left 0.3s ease",
-        }}
-      >
-        <Typography variant="h6" color="text.primary">
-          Glad to see you
-        </Typography>
+    // EFFECT 1: REAL-TIME CLOCK (Unchanged)
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentDate(formatDate(new Date()));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []); 
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-          <Select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            size="small"
-          >
-            <MenuItem value="USD">USD</MenuItem>
-            <MenuItem value="EUR">EUR</MenuItem>
-            <MenuItem value="GBP">GBP</MenuItem>
-          </Select>
+    // EFFECT 2: Data Fetching (Quotation Pipeline Chart)
+    useEffect(() => {
+        const fetchChartData = async () => {
+            setLoadingChart(true);
+            setErrorChart(null);
+            
+            const authToken = localStorage.getItem('authToken'); 
+            if (!authToken) {
+                setErrorChart("Authentication failed. Please log in.");
+                setLoadingChart(false);
+                return; 
+            }
 
-          <Select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            size="small"
-          >
-            <MenuItem value="This Week">This Week</MenuItem>
-            <MenuItem value="This Month">This Month</MenuItem>
-            <MenuItem value="This Year">This Year</MenuItem>
-          </Select>
+            try {
+                // Fetch data for the quotation pipeline based on period
+                const response = await fetch(`${API_URL}?period=${period}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+                });
+                
+                if (response.status === 401) { throw new Error("Unauthorized."); }
+                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <CalendarTodayIcon />
-            <Typography variant="body1" color="text.primary">
-              28 Sep 2025
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+                const apiResponse = await response.json();
+                
+                // Assuming the API returns a structure like: { ..., quotationPipelineData: [...] }
+                const pipelineDataArray = apiResponse.quotationPipelineData; 
+                
+                if (Array.isArray(pipelineDataArray)) {
+                    setChartData(pipelineDataArray);
+                } else {
+                    console.error("API response did not contain the expected 'quotationPipelineData' array:", apiResponse);
+                    throw new Error("Invalid data format for chart. Expected 'quotationPipelineData' array.");
+                }
+                
+            } catch (err) {
+                console.error("Error fetching quotation data:", err);
+                const errorMessage = err.message.includes("Unauthorized") 
+                    ? "Session expired. Please log in again."
+                    : (err.message.includes("Invalid data format") ? err.message : "Failed to load quotation data. Check API URL and server status.");
+                setErrorChart(errorMessage);
+                setChartData([]);
+            } finally {
+                setLoadingChart(false);
+            }
+        };
 
-      {/* Main 2-column layout */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
-          gap: 4,
-          mt: 4,
-        }}
-      >
-        {/* Left column */}
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <RecentTransaction />
-          <RecentActivity />
-        </Box>
+        fetchChartData();
+    // CRITICAL FIX: Watching period AND the quotation refresh key 
+    }, [period, quotationRefreshKey]); 
 
-        {/* Right column */}
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {/* Chart */}
-          <div className="w-full bg-white p-4 rounded-lg border border-gray-200">
-            <h2 className="text-lg font-semibold mb-4">Overview</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data} margin={{ top: 5, right: 50, left: 10, bottom: 5 }}>
-                <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-                <XAxis dataKey="name" />
-                <YAxis tickFormatter={(value) => `$${value.toLocaleString()}`} />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, "Sales"]} />
-                <Line
-                  type="monotone"
-                  dataKey="sales"
-                  stroke="#14da09ff"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+    return (
+        <div style={{ padding: "30px", height: "100%", overflowY: "auto" }}>
+            {/* Greeting + Controls */}
+            <Box
+                sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 4,
+                    flexWrap: "wrap",
+                    gap: 2
+                }}
+            >
+                {/* Updated Title */}
+                <Typography variant="h6" color="text.primary">
+                    Quotation Dashboard
+                </Typography>
 
-          {/* Recent Payments */}
-          <RecentPayment />
-        </Box>
-      </Box>
-    </div>
-  );
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+                    <Select
+                        value={period}
+                        onChange={(e) => setPeriod(e.target.value)}
+                        size="small"
+                        sx={{ minWidth: 120 }}
+                    >
+                        <MenuItem value="This Week">This Week</MenuItem>
+                        <MenuItem value="This Month">This Month</MenuItem>
+                        <MenuItem value="This Year">This Year</MenuItem>
+                    </Select>
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                        <CalendarTodayIcon fontSize="small" />
+                        <Typography variant="body1" color="text.primary">
+                            {currentDate}
+                        </Typography>
+                    </Box>
+                </Box>
+            </Box>
+
+            {/* Main 2-column layout */}
+            <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+                    gap: 4,
+                    flex: 1,
+                }}
+            >
+                {/* Left column: Activity + Client */}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                    <RecentActivity /> 
+                    
+                    {/* Pass the clientRefreshKey to RecentClient */}
+                    <RecentClient refreshKey={clientRefreshKey} />
+                </Box>
+
+                {/* Right column: Chart + Quotation */}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                    
+                    {/* Chart Box - Quotation Pipeline */}
+                    <Box
+                        sx={{
+                            backgroundColor: "#fff",
+                            p: 4,
+                            borderRadius: 2,
+                            boxShadow: "0px 2px 8px rgba(0,0,0,0.1)",
+                            minHeight: 400
+                        }}
+                    >
+                        <Typography variant="h6" sx={{ mb: 2 }}>
+                            Quotation Pipeline ({period})
+                        </Typography>
+                        
+                        {/* Chart rendering logic */}
+                        {loadingChart ? (
+                            <Box display="flex" justifyContent="center" alignItems="center" height={300}>
+                                <CircularProgress size={24} />
+                                <Typography ml={2}>Loading pipeline data...</Typography>
+                            </Box>
+                        ) : errorChart ? (
+                            <Alert severity="error" sx={{ my: 2 }}>
+                                {errorChart}
+                            </Alert>
+                        ) : chartData.length === 0 ? (
+                            <Box display="flex" justifyContent="center" alignItems="center" height={300}>
+                                <Typography color="text.secondary">No quotation data for this period.</Typography>
+                            </Box>
+                        ) : (
+                            // BarChart for clear status comparison
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart 
+                                    data={chartData}
+                                    margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
+                                    // stackOffset property removed to show counts, not percentages
+                                >
+                                    <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" /> 
+                                    {/* FIX: Removed dataKey="total" from YAxis if not needed for vertical scaling, 
+                                            and rely on Recharts auto-scaling for counts */}
+                                    <YAxis tickFormatter={(value) => `${value}`} /> 
+                                    <Tooltip 
+                                        formatter={(value, name) => [value, name]}
+                                        cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                                    />
+                                    <Legend />
+                                    
+                                    {/* Data keys must match your C# QuotationDataPoint DTO properties */}
+                                    <Bar dataKey="draft" fill="#FFC107" name="Draft" stackId="a" />
+                                    <Bar dataKey="sent" fill="#03A9F4" name="Sent" stackId="a" />
+                                    <Bar dataKey="accepted" fill="#4CAF50" name="Accepted" stackId="a" />
+                                    <Bar dataKey="rejected" fill="#F44336" name="Rejected" stackId="a" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                    </Box>
+
+                    {/* Recent Quotations */}
+                    <RecentQuotation />
+                </Box>
+            </Box>
+        </div>
+    );
 };
 
 export default Overview;
