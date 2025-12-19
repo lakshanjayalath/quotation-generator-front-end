@@ -17,6 +17,8 @@ import NewItemForm from "../components/NewItemForm";
 import NewQuotationForm from "../components/NewQuotationForm";
 import Report from "../components/Report"; 
 import Setting from "./Setting";
+import AdminRegisterPage from "./AdminRegisterPage";
+import { AdminRoute } from "../components/ProtectedRoute";
 
 export default function Dashboard() {
     const topBarHeight = 64;
@@ -74,8 +76,9 @@ export default function Dashboard() {
                                 <Route path="new-quote" element={<NewQuotationForm />} />
                                 <Route path="edit-quote/:id" element={<NewQuotationForm />} />
 
-                                <Route path="reports" element={<Report />} />
-                                <Route path="setting/*" element={<Setting />} />
+                                <Route path="reports" element={<AdminRoute><Report /></AdminRoute>} />
+                                <Route path="setting/*" element={<AdminRoute><Setting /></AdminRoute>} />
+                                <Route path="admin-register" element={<AdminRoute><AdminRegisterPage /></AdminRoute>} />
                             </Routes>
                         </QuotationRefreshProvider> {/* 👈 CLOSING TAG */}
                     </ClientRefreshProvider>

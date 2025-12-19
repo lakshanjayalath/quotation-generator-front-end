@@ -32,30 +32,52 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 
 // --- Menu Definitions ---
-const topMenuItems = [
-  { label: "Dashboard", icon: <HomeIcon />, link: "/dashboard" },
-  { label: "Clients", icon: <PeopleAltIcon />, link: "/dashboard/clients" },
-  { label: "Products", icon: <InventoryIcon />, link: "/dashboard/items" },
-  // { label: "Invoices", icon: <PaymentsIcon />, link: "/dashboard/invoices" },
-  // { label: "Payments", icon: <PaidIcon />, link: "/dashboard/payments" },
-  { label: "Quotes", icon: <WidgetsIcon />, link: "/dashboard/quotes" },
-  // { label: "Vendors", icon: <StoreIcon />, link: "/dashboard/vendors" },
-  // { label: "Purchase Orders", icon: <ShoppingCartIcon />, link: "/dashboard/purchase-orders" },
-  // { label: "Transaction", icon: <PaidIcon />, link: "/dashboard/transaction" },
-  { label: "Reports", icon: <SummarizeIcon />, link: "/dashboard/reports" },
-  { label: "Settings", icon: <SettingsIcon />, link: "/dashboard/setting" },
+// All menu items with role access
+const allMenuItems = [
+  { label: "Dashboard", icon: <HomeIcon />, link: "/dashboard", roles: ["Admin", "User"] },
+  { label: "Clients", icon: <PeopleAltIcon />, link: "/dashboard/clients", roles: ["Admin", "User"] },
+  { label: "Products", icon: <InventoryIcon />, link: "/dashboard/items", roles: ["Admin", "User"] },
+  { label: "Quotes", icon: <WidgetsIcon />, link: "/dashboard/quotes", roles: ["Admin", "User"] },
+  { label: "Reports", icon: <SummarizeIcon />, link: "/dashboard/reports", roles: ["Admin"] },
+  { label: "Settings", icon: <SettingsIcon />, link: "/dashboard/setting", roles: ["Admin"] },
+  { label: "Register User", icon: <PeopleAltIcon />, link: "/dashboard/admin-register", roles: ["Admin"] },
 ];
 
-const bottomMenuItems = [
-  { label: "Edit Profile", icon: <EditIcon />, link: "/edit-profile" },
-  { label: "Help", icon: <HelpIcon />, link: "/help" },
-  { label: "Feedback", icon: <WarningIcon />, link: "/feedback" },
-  { label: "Audit Log", icon: <RestoreIcon />, link: "/audit-log" },
+const allBottomMenuItems = [
+  { label: "Edit Profile", icon: <EditIcon />, link: "/edit-profile", roles: ["Admin", "User"] },
+  { label: "Help", icon: <HelpIcon />, link: "/help", roles: ["Admin", "User"] },
+  { label: "Feedback", icon: <WarningIcon />, link: "/feedback", roles: ["Admin", "User"] },
+  { label: "Audit Log", icon: <RestoreIcon />, link: "/audit-log", roles: ["Admin"] },
 ];
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [userRole, setUserRole] = useState("User");
+
+  // Get user role from localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUserRole(userData.role || "User");
+      } catch (e) {
+        console.error("Error parsing user data:", e);
+      }
+    }
+  }, []);
+
+  // Filter menu items based on role (case-insensitive)
+  const normalizedRole = userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase();
+  
+  const topMenuItems = allMenuItems.filter((item) =>
+    item.roles.some((role) => role.toLowerCase() === userRole.toLowerCase())
+  );
+
+  const bottomMenuItems = allBottomMenuItems.filter((item) =>
+    item.roles.some((role) => role.toLowerCase() === userRole.toLowerCase())
+  );
 
   // Apply theme to body
   useEffect(() => {
