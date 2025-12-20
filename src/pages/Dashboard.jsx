@@ -22,6 +22,7 @@ import NewQuotationForm from "../components/NewQuotationForm";
 import Report from "../components/Report";
 import Setting from "./Setting";
 import EditClientProfile from "../components/EditClientProfile"; // ✅ FIXED IMPORT
+import AdminRegisterPage from "./AdminRegisterPage";
 
 export default function Dashboard() {
   const topBarHeight = 64;
@@ -85,6 +86,8 @@ export default function Dashboard() {
                 {/* Reports & Settings */}
                 <Route path="reports" element={<Report />} />
                 <Route path="setting/*" element={<Setting />} />
+                <Route path="admin-register" element={<AdminRegisterPage />} />
+                <Route path="edit-profile" element={<EditClientProfile />} />
 
               </Routes>
             </QuotationRefreshProvider>
