@@ -73,6 +73,7 @@ export default function Dashboard() {
                                 <Route path="items" element={<ItemPage />} />
                                 <Route path="quotes" element={<QuotationList />} />
                                 <Route path="new-item" element={<NewItemForm />} />
+                                <Route path="edit-item/:id" element={<NewItemForm />} />
                                 <Route path="new-quote" element={<NewQuotationForm />} />
                                 <Route path="edit-quote/:id" element={<NewQuotationForm />} />
 
