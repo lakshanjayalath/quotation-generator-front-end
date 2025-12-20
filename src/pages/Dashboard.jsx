@@ -1,6 +1,6 @@
 // src/pages/Dashboard.jsx
 
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 // 🛑 Context Providers
@@ -21,14 +21,13 @@ import NewItemForm from "../components/NewItemForm";
 import NewQuotationForm from "../components/NewQuotationForm";
 import Report from "../components/Report";
 import Setting from "./Setting";
-
-// ✅ Client-only profile page
-import EditClientProfile from "../components/EditClientProfile";
+import EditClientProfile from "../components/EditClientProfile"; // ✅ FIXED IMPORT
 
 export default function Dashboard() {
   const topBarHeight = 64;
   const location = useLocation();
-  const [collapsed, setCollapsed] = React.useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
   const isSettingPage = location.pathname.startsWith("/dashboard/setting");
 
   return (
@@ -66,15 +65,16 @@ export default function Dashboard() {
           <ClientRefreshProvider>
             <QuotationRefreshProvider>
               <Routes>
+
                 {/* Overview */}
                 <Route index element={<Overview collapsed={collapsed} />} />
 
-                {/* Clients (Admin) */}
+                {/* Clients */}
                 <Route path="clients" element={<ClientPage />} />
                 <Route path="clients/edit/:id" element={<NewClientForm />} />
                 <Route path="new-client" element={<NewClientForm />} />
 
-                {/* ✅ Client Profile (TopBar ONLY, no :id) */}
+                {/* Client Profile (TopBar access – no :id) */}
                 <Route path="edit-profile" element={<EditClientProfile />} />
 
                 {/* Items */}
@@ -89,6 +89,7 @@ export default function Dashboard() {
                 {/* Reports & Settings */}
                 <Route path="reports" element={<Report />} />
                 <Route path="setting/*" element={<Setting />} />
+
               </Routes>
             </QuotationRefreshProvider>
           </ClientRefreshProvider>
@@ -97,4 +98,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 

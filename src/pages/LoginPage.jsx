@@ -64,10 +64,18 @@ export default function LoginPage() {
         localStorage.setItem("authToken", response.data.token);
       }
 
-      // Store user data if provided
-      if (response.data.user) {
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+      // Store user data with role
+      const userData = response.data.user || {
+        email: formData.email,
+        role: response.data.role || "User",
+      };
+      
+      // If role is at root level, add it to user object
+      if (response.data.role && !userData.role) {
+        userData.role = response.data.role;
       }
+
+      localStorage.setItem("user", JSON.stringify(userData));
 
       // Navigate to dashboard
       navigate("/dashboard");
