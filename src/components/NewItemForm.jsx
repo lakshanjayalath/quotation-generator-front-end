@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Box,
   TextField,
@@ -10,30 +10,67 @@ import {
   Container,
   Snackbar,
   Alert,
+  Avatar,
+  IconButton,
+  CircularProgress,
 } from "@mui/material";
 import HomeIcon from '@mui/icons-material/Home';
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { Link as RouterLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "axios";
+import { uploadImage } from "../services/supabaseClient";
 
 export default function NewItemForm({ initialData = null, onSave }) {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const location = useLocation();
+  const fileInputRef = useRef(null);
 
-  const [formData, setFormData] = useState(
-    initialData || {
-      title: "",
+  // Check if we're in edit mode (either via props or route params)
+  const isEditMode = !!(initialData || id);
+  const itemFromState = location.state?.item;
+
+  const [formData, setFormData] = useState(() => {
+    if (initialData) {
+      return {
+        item: initialData.item || initialData.title || "",
+        description: initialData.description || "",
+        price: initialData.price || 0,
+        qty: initialData.qty || initialData.quantity || 0,
+        imageUrl: initialData.imageUrl || "",
+      };
+    }
+    if (itemFromState) {
+      return {
+        item: itemFromState.item || itemFromState.title || "",
+        description: itemFromState.description || "",
+        price: itemFromState.price || 0,
+        qty: itemFromState.qty || itemFromState.quantity || 0,
+        imageUrl: itemFromState.imageUrl || "",
+      };
+    }
+    return {
+      item: "",
       description: "",
       price: 0,
-      quantity: 0,
-    }
-  );
+      qty: 0,
+      imageUrl: "",
+    };
+  });
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
+  const [imagePreview, setImagePreview] = useState(
+    initialData?.imageUrl || itemFromState?.imageUrl || null
+  );
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState("");
 
   const handleChange = (field) => (event) => {
     setFormData({
       ...formData,
-      [field]: field === "price" || field === "quantity"
+      [field]: field === "price" || field === "qty"
         ? Number(event.target.value)
         : event.target.value,
     });
@@ -46,11 +83,73 @@ export default function NewItemForm({ initialData = null, onSave }) {
     }
   };
 
+  // Handle image upload
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setImageError("Please upload a valid image file (JPEG, PNG, GIF, or WebP)");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Image size must be less than 5MB");
+      return;
+    }
+
+    setImageError("");
+    setImageUploading(true);
+
+    try {
+      // Show preview immediately
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload to Supabase
+      const result = await uploadImage(file);
+
+      if (result.success) {
+        setFormData(prev => ({
+          ...prev,
+          imageUrl: result.url,
+        }));
+      } else {
+        setImageError(result.error || "Failed to upload image");
+        setImagePreview(null);
+      }
+    } catch (error) {
+      console.error("Image upload error:", error);
+      setImageError("Failed to upload image. Please try again.");
+      setImagePreview(null);
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setFormData(prev => ({
+      ...prev,
+      imageUrl: "",
+    }));
+    setImageError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.title.trim()) {
-      newErrors.title = "Title is required";
+    if (!formData.item.trim()) {
+      newErrors.item = "Item name is required";
     }
 
     if (!formData.description.trim()) {
@@ -61,8 +160,8 @@ export default function NewItemForm({ initialData = null, onSave }) {
       newErrors.price = "Price must be a valid positive number";
     }
 
-    if (!Number.isInteger(formData.quantity) || formData.quantity <= 0) {
-      newErrors.quantity = "Quantity must be a valid positive integer";
+    if (!Number.isInteger(formData.qty) || formData.qty <= 0) {
+      newErrors.qty = "Quantity must be a valid positive integer";
     }
 
     setErrors(newErrors);
@@ -72,19 +171,30 @@ export default function NewItemForm({ initialData = null, onSave }) {
   const handleSave = async () => {
     if (validateForm()) {
       try {
-        await axios.post("http://localhost:5264/api/items", formData);
+        const itemId = id || initialData?.id || itemFromState?.id;
+        
+        if (isEditMode && itemId) {
+          // Update existing item
+          await axios.put(`http://localhost:5264/api/items/${itemId}`, formData);
+        } else {
+          // Create new item
+          await axios.post("http://localhost:5264/api/items", formData);
+        }
+        
         setShowSuccess(true);
 
         if (onSave) onSave(formData);
 
         // Reset form only if it's a new item, not editing
-        if (!initialData) {
+        if (!isEditMode) {
           setFormData({
-            title: "",
+            item: "",
             description: "",
             price: 0,
-            quantity: 0,
+            qty: 0,
+            imageUrl: "",
           });
+          setImagePreview(null);
         }
 
         // Navigate back to items page after successful save
@@ -93,7 +203,7 @@ export default function NewItemForm({ initialData = null, onSave }) {
         }, 1500);
       } catch (error) {
         console.error("Error saving item:", error);
-        alert("Failed to save item. Please try again.");
+        alert(`Failed to ${isEditMode ? 'update' : 'save'} item. Please try again.`);
       }
     }
   };
@@ -115,11 +225,11 @@ export default function NewItemForm({ initialData = null, onSave }) {
         >
           <HomeIcon fontSize="small" />
         </Link>
-        <Link component={RouterLink} underline="hover" color="inherit" to="/items">
+        <Link component={RouterLink} underline="hover" color="inherit" to="/dashboard/items">
           Items
         </Link>
         <Typography color="text.primary">
-          {initialData ? "Edit Item" : "New Item"}
+          {isEditMode ? "Edit Item" : "New Item"}
         </Typography>
       </Breadcrumbs>
 
@@ -138,7 +248,7 @@ export default function NewItemForm({ initialData = null, onSave }) {
           }}
         >
           <Typography variant="h5" component="h1" fontWeight={500}>
-            {initialData ? "Edit Item" : "New Item"}
+            {isEditMode ? "Edit Item" : "New Item"}
           </Typography>
           <Box>
             <Button
@@ -159,7 +269,7 @@ export default function NewItemForm({ initialData = null, onSave }) {
                 borderRadius: 1,
               }}
             >
-              Save
+              {isEditMode ? "Update" : "Save"}
             </Button>
           </Box>
         </Box>
@@ -169,19 +279,101 @@ export default function NewItemForm({ initialData = null, onSave }) {
           component="form"
           sx={{ display: "flex", flexDirection: "column", gap: 3 }}
         >
+          {/* Image Upload Section */}
+          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}>
+            <Typography
+              variant="body1"
+              sx={{ minWidth: 120, fontWeight: 500, pt: 1 }}
+            >
+              Product Image
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1, flex: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                {/* Image Preview */}
+                <Avatar
+                  src={imagePreview}
+                  variant="rounded"
+                  sx={{
+                    width: 100,
+                    height: 100,
+                    bgcolor: "#f5f5f5",
+                    border: "2px dashed #ccc",
+                  }}
+                >
+                  {!imagePreview && (
+                    <CloudUploadIcon sx={{ fontSize: 40, color: "#999" }} />
+                  )}
+                </Avatar>
+
+                {/* Upload Controls */}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleImageUpload}
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
+                    id="image-upload-input"
+                  />
+                  <label htmlFor="image-upload-input">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      startIcon={imageUploading ? <CircularProgress size={16} /> : <CloudUploadIcon />}
+                      disabled={imageUploading}
+                      sx={{
+                        borderColor: "#4a7c59",
+                        color: "#4a7c59",
+                        "&:hover": { borderColor: "#386641", bgcolor: "rgba(74, 124, 89, 0.04)" },
+                      }}
+                    >
+                      {imageUploading ? "Uploading..." : "Upload Image"}
+                    </Button>
+                  </label>
+                  {imagePreview && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      startIcon={<DeleteIcon />}
+                      onClick={handleRemoveImage}
+                      disabled={imageUploading}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+              {imageError && (
+                <Typography variant="caption" color="error">
+                  {imageError}
+                </Typography>
+              )}
+              <Typography variant="caption" color="text.secondary">
+                Supported formats: JPEG, PNG, GIF, WebP. Max size: 5MB
+              </Typography>
+            </Box>
+          </Box>
+
           <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
             <Typography
               variant="body1"
               sx={{ minWidth: 120, fontWeight: 500 }}
             >
-              Title
+              Item Name
             </Typography>
             <TextField
               fullWidth
-              value={formData.title}
-              onChange={handleChange("title")}
-              error={!!errors.title}
-              helperText={errors.title}
+              value={formData.item}
+              onChange={handleChange("item")}
+              error={!!errors.item}
+              helperText={errors.item}
               variant="outlined"
               sx={{
                 "& .MuiOutlinedInput-root": {
@@ -255,10 +447,10 @@ export default function NewItemForm({ initialData = null, onSave }) {
             <TextField
               fullWidth
               type="number"
-              value={formData.quantity}
-              onChange={handleChange("quantity")}
-              error={!!errors.quantity}
-              helperText={errors.quantity}
+              value={formData.qty}
+              onChange={handleChange("qty")}
+              error={!!errors.qty}
+              helperText={errors.qty}
               variant="outlined"
               inputProps={{ min: 0, step: 1 }}
               sx={{
@@ -285,7 +477,7 @@ export default function NewItemForm({ initialData = null, onSave }) {
           severity="success"
           sx={{ width: "100%" }}
         >
-          Item saved successfully!
+          Item {isEditMode ? "updated" : "saved"} successfully!
         </Alert>
       </Snackbar>
     </Container>

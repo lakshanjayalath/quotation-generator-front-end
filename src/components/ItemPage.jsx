@@ -19,9 +19,18 @@ import {
   Select,
   TablePagination,
   CircularProgress,
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import HomeIcon from '@mui/icons-material/Home';
+import axios from "axios";
 
 // Row Component
 function ItemRow({
@@ -32,6 +41,8 @@ function ItemRow({
   anchorEl,
   menuRowId,
   handleMenuClose,
+  onEdit,
+  onDelete,
 }) {
   return (
     <TableRow hover role="checkbox" selected={isSelected} aria-checked={isSelected}>
@@ -42,6 +53,16 @@ function ItemRow({
           onClick={() => handleClick(row.id)}
           inputProps={{ "aria-labelledby": `item-${row.id}` }}
         />
+      </TableCell>
+      <TableCell>
+        <Avatar
+          src={row.imageUrl}
+          alt={row.item}
+          variant="rounded"
+          sx={{ width: 50, height: 50 }}
+        >
+          {!row.imageUrl && row.item?.charAt(0).toUpperCase()}
+        </Avatar>
       </TableCell>
       <TableCell id={`item-${row.id}`}>{row.item}</TableCell>
       <TableCell>{row.description}</TableCell>
@@ -66,8 +87,8 @@ function ItemRow({
           open={menuRowId === row.id}
           onClose={handleMenuClose}
         >
-          <MenuItem onClick={handleMenuClose}>Edit</MenuItem>
-          <MenuItem onClick={handleMenuClose}>Delete</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onEdit(row); }}>Edit</MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onDelete(row); }} sx={{ color: 'error.main' }}>Delete</MenuItem>
         </Menu>
       </TableCell>
     </TableRow>
@@ -84,30 +105,80 @@ export default function ItemPage() {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [itemToDelete, setItemToDelete] = React.useState(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [snackbar, setSnackbar] = React.useState({ open: false, message: "", severity: "success" });
   const navigate = useNavigate();
 
   // Fetch items from API
-  React.useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("http://localhost:5264/api/items");
-        if (!response.ok) {
-          throw new Error("Failed to fetch items");
-        }
-        const data = await response.json();
-        setRows(data);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        console.error("Error fetching items:", err);
-      } finally {
-        setLoading(false);
+  const fetchItems = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("http://localhost:5264/api/items");
+      if (!response.ok) {
+        throw new Error("Failed to fetch items");
       }
-    };
-
-    fetchItems();
+      const data = await response.json();
+      // Map the data to ensure consistent field names
+      const mappedData = data.map(item => ({
+        ...item,
+        imageUrl: item.imageUrl || item.image_url || item.ImageUrl || "",
+      }));
+      setRows(mappedData);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      console.error("Error fetching items:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  // Edit handler - navigate to edit page with item data
+  const handleEdit = (item) => {
+    navigate(`/dashboard/edit-item/${item.id}`, { state: { item } });
+  };
+
+  // Delete handlers
+  const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+
+    setDeleting(true);
+    try {
+      await axios.delete(`http://localhost:5264/api/items/${itemToDelete.id}`);
+      setSnackbar({ open: true, message: "Item deleted successfully!", severity: "success" });
+      // Refresh the items list
+      fetchItems();
+      // Clear selection if deleted item was selected
+      setSelected(prev => prev.filter(id => id !== itemToDelete.id));
+    } catch (err) {
+      console.error("Error deleting item:", err);
+      setSnackbar({ open: true, message: "Failed to delete item. Please try again.", severity: "error" });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
 
   // Filter Logic
   const filteredRows = rows.filter(
@@ -242,6 +313,7 @@ export default function ItemPage() {
                     onChange={handleSelectAllClick}
                   />
                 </TableCell>
+                <TableCell>Image</TableCell>
                 <TableCell>Item</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Price</TableCell>
@@ -252,19 +324,19 @@ export default function ItemPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ color: "red" }}>
+                  <TableCell colSpan={7} align="center" sx={{ color: "red" }}>
                     Error: {error}
                   </TableCell>
                 </TableRow>
               ) : paginatedRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     No items available
                   </TableCell>
                 </TableRow>
@@ -279,6 +351,8 @@ export default function ItemPage() {
                     anchorEl={anchorEl}
                     menuRowId={menuRowId}
                     handleMenuClose={handleMenuClose}
+                    onEdit={handleEdit}
+                    onDelete={handleDeleteClick}
                   />
                 ))
               )}
@@ -297,6 +371,47 @@ export default function ItemPage() {
           rowsPerPageOptions={[5, 10, 15]}
         />
       </Paper>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete the item "{itemToDelete?.item}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

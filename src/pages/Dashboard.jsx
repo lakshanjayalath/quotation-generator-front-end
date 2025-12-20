@@ -74,15 +74,11 @@ export default function Dashboard() {
                 <Route path="clients/edit/:id" element={<NewClientForm />} />
                 <Route path="new-client" element={<NewClientForm />} />
 
-                {/* Client Profile (TopBar access – no :id) */}
-                <Route path="edit-profile" element={<EditClientProfile />} />
-
-                {/* Items */}
+                {/* Items & Quotes */}
                 <Route path="items" element={<ItemPage />} />
-                <Route path="new-item" element={<NewItemForm />} />
-
-                {/* Quotations */}
                 <Route path="quotes" element={<QuotationList />} />
+                <Route path="new-item" element={<NewItemForm />} />
+                <Route path="edit-item/:id" element={<NewItemForm />} />
                 <Route path="new-quote" element={<NewQuotationForm />} />
                 <Route path="edit-quote/:id" element={<NewQuotationForm />} />
 
