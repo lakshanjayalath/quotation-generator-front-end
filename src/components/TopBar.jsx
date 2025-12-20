@@ -7,8 +7,12 @@ import {
   Typography,
   TextField,
   InputAdornment,
+  Avatar,
+  Menu,
+  MenuItem,
+  Tooltip,
 } from "@mui/material";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 
@@ -33,28 +37,49 @@ const pageTitles = {
 
 const TopBar = () => {
   const location = useLocation();
-  const title = pageTitles[location.pathname] || "Dashboard"; // default if not mapped
+  const navigate = useNavigate();
+  const title = pageTitles[location.pathname] || "Dashboard";
+
+  // 🔹 Avatar menu state
+  const [anchorElUser, setAnchorElUser] = React.useState(null);
+
+  // 🔹 Example user data (replace with real data / context / API)
+  const userName = "Lakmali";
+  const userImage = ""; // example: "https://your-image-url.jpg"
+
+  const handleOpenUserMenu = (event) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
 
   return (
     <AppBar
       position="static"
       sx={{
-        backgroundColor: "#6A994E", // updated color
+        backgroundColor: "#6A994E",
         boxShadow: "none",
       }}
     >
-      <Toolbar sx={{ display: "flex", justifyContent: "flex-start", gap: 2 }}>
+      <Toolbar sx={{ display: "flex", gap: 2 }}>
         {/* Page Title + Add button */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Typography
             variant="h6"
             component="div"
-            sx={{ fontWeight: "bold", color: "white" }} // text color changed to white for contrast
+            sx={{ fontWeight: "bold", color: "white" }}
           >
             {title}
           </Typography>
           <IconButton>
-            <AddCircleIcon sx={{ color: "white" }} /> {/* icon color updated */}
+            <AddCircleIcon sx={{ color: "white" }} />
           </IconButton>
         </Box>
 
@@ -64,23 +89,16 @@ const TopBar = () => {
           size="small"
           placeholder="Search..."
           sx={{
-            bgcolor: "#6A994E", // search bar background matches topbar
+            bgcolor: "#6A994E",
             borderRadius: 2,
             minWidth: 200,
             "& .MuiOutlinedInput-root": {
-              paddingRight: 0,
-              "& fieldset": {
-                borderColor: "white", // border color for search box
-              },
-              "&:hover fieldset": {
-                borderColor: "white",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "white",
-              },
+              "& fieldset": { borderColor: "white" },
+              "&:hover fieldset": { borderColor: "white" },
+              "&.Mui-focused fieldset": { borderColor: "white" },
               color: "white",
             },
-            input: { color: "white" }, // input text color
+            input: { color: "white" },
           }}
           InputProps={{
             startAdornment: (
@@ -90,10 +108,49 @@ const TopBar = () => {
             ),
           }}
         />
+
+        {/* 🔹 Spacer (keeps layout unchanged, pushes avatar right) */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* 🔹 Avatar Section (NEW) */}
+        <Box sx={{ flexGrow: 0 }}>
+          <Tooltip title="Account settings">
+            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+              <Avatar
+                src={userImage}
+                alt={userName}
+                sx={{ bgcolor: "#386641", color: "white" }}
+              >
+                {!userImage && userName.charAt(0).toUpperCase()}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
+
+          <Menu
+            sx={{ mt: "45px" }}
+            anchorEl={anchorElUser}
+            anchorOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            open={Boolean(anchorElUser)}
+            onClose={handleCloseUserMenu}
+          >
+            <MenuItem onClick={() => navigate("/dashboard/edit-profile")}>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          </Menu>
+        </Box>
       </Toolbar>
     </AppBar>
   );
 };
 
 export default TopBar;
+
 
