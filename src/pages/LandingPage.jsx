@@ -36,6 +36,13 @@ export default function LandingPage() {
                         QuoteGenius
                     </Typography>
                     <Box>
+                        <Button
+                            color="inherit"
+                            sx={{ mx: 1, fontWeight: 500 }}
+                            onClick={() => navigate("/products")}
+                        >
+                            Products
+                        </Button>
                         {["Features", "How It Works", "Pricing", "Contact"].map((item) => (
                             <Button key={item} color="inherit" sx={{ mx: 1, fontWeight: 500 }}>
                                 {item}
@@ -52,7 +59,7 @@ export default function LandingPage() {
                             }}
                             onClick={() => navigate("/register")}
                         >
-                            Get Started
+                            Sign Up
                         </Button>
                     </Box>
                 </Toolbar>
