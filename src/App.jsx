@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
+import ProductsPage from "./pages/ProductsPage";
 import Dashboard from "./pages/Dashboard";
 import RegisterPage from "./pages/RegisterForm";
 import LoginPage from "./pages/LoginPage";
@@ -12,6 +13,9 @@ export default function App() {
       <Routes>
         {/* Default route */}
         <Route path="/" element={<LandingPage />} />
+        
+        {/* Products page - public */}
+        <Route path="/products" element={<ProductsPage />} />
 
         {/* Authentication routes */}
         <Route path="/register" element={<RegisterPage />} />
