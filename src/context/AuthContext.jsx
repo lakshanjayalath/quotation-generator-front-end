@@ -49,6 +49,13 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
   };
 
+  // Update user data (e.g., after profile image upload)
+  const updateUser = (updatedFields) => {
+    const updatedUser = { ...user, ...updatedFields };
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  };
+
   const isAuthenticated = () => !!token;
 
   const isAdmin = () => {
@@ -69,6 +76,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    updateUser,
     isAuthenticated,
     isAdmin,
     isUser,
