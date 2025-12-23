@@ -21,7 +21,7 @@ import NewItemForm from "../components/NewItemForm";
 import NewQuotationForm from "../components/NewQuotationForm";
 import Report from "../components/Report";
 import Setting from "./Setting";
-import EditClientProfile from "../components/EditClientProfile"; // ✅ FIXED IMPORT
+import EditUserProfile from "../components/EditUserProfile";
 import AdminRegisterPage from "./AdminRegisterPage";
 
 export default function Dashboard() {
@@ -87,7 +87,7 @@ export default function Dashboard() {
                 <Route path="reports" element={<Report />} />
                 <Route path="setting/*" element={<Setting />} />
                 <Route path="admin-register" element={<AdminRegisterPage />} />
-                <Route path="edit-profile" element={<EditClientProfile />} />
+                <Route path="edit-profile" element={<EditUserProfile />} />
 
               </Routes>
             </QuotationRefreshProvider>

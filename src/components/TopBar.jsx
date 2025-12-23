@@ -15,6 +15,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import { useAuth } from "../context/AuthContext";
 
 // Map routes to page titles
 const pageTitles = {
@@ -38,14 +39,15 @@ const pageTitles = {
 const TopBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const title = pageTitles[location.pathname] || "Dashboard";
 
   // 🔹 Avatar menu state
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
-  // 🔹 Example user data (replace with real data / context / API)
-  const userName = "Lakmali";
-  const userImage = ""; // example: "https://your-image-url.jpg"
+  // 🔹 Get user data from auth context
+  const userName = user?.firstName || user?.name || user?.email || "";
+  const userImage = user?.profileImageUrl || user?.profileImage || "";
 
   const handleOpenUserMenu = (event) => {
     setAnchorElUser(event.currentTarget);
@@ -56,7 +58,7 @@ const TopBar = () => {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    logout();
     navigate("/login");
   };
 
