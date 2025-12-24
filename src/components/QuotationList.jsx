@@ -156,7 +156,10 @@ export default function QuotationList() {
         const fetchQuotations = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get("http://localhost:5264/api/Quotations");
+                const authToken = localStorage.getItem('authToken');
+                const response = await axios.get("http://localhost:5264/api/Quotations", {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
                 console.log("Quotations data:", response.data);
                 setRows(response.data);
                 setError(null);
@@ -347,7 +350,10 @@ export default function QuotationList() {
     const handleView = async (row) => {
         try {
             // Fetch full quotation details if needed
-            const response = await axios.get(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`);
+            const authToken = localStorage.getItem('authToken');
+            const response = await axios.get(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
             const quotation = response.data;
             
             const doc = generateQuotationPDF(quotation);
@@ -373,7 +379,10 @@ export default function QuotationList() {
     const handleEdit = async (row) => {
         try {
             // Fetch full quotation details
-            const response = await axios.get(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`);
+            const authToken = localStorage.getItem('authToken');
+            const response = await axios.get(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
             const quotation = response.data;
             navigate(`/dashboard/edit-quote/${row.quotationId || row.id}`, { state: { quotation } });
         } catch (error) {
@@ -390,7 +399,10 @@ export default function QuotationList() {
         
         if (confirmed) {
             try {
-                await axios.delete(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`);
+                const authToken = localStorage.getItem('authToken');
+                await axios.delete(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
                 // Remove from state
                 setRows((prevRows) => prevRows.filter((r) => (r.quotationId || r.id) !== (row.quotationId || row.id)));
                 alert("Quotation deleted successfully!");
@@ -404,8 +416,11 @@ export default function QuotationList() {
     // Change quotation status
     const handleChangeStatus = async (row, newStatus) => {
         try {
+            const authToken = localStorage.getItem('authToken');
             await axios.patch(`http://localhost:5264/api/Quotations/${row.quotationId || row.id}/status`, {
                 Status: newStatus
+            }, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
             });
             // Update in state
             setRows((prevRows) =>
