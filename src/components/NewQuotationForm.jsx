@@ -86,7 +86,10 @@ export default function NewQuotationForm() {
       // Otherwise fetch from API
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5264/api/Quotations/${id}`);
+        const authToken = localStorage.getItem('authToken');
+        const response = await axios.get(`http://localhost:5264/api/Quotations/${id}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
         populateFormData(response.data);
       } catch (error) {
         console.error("Error loading quotation:", error);
@@ -400,6 +403,7 @@ export default function NewQuotationForm() {
     try {
       setSaving(true);
 
+      const authToken = localStorage.getItem('authToken');
       const quotationPayload = {
         QuoteNumber: quoteData.quoteNumber,
         ClientName: quoteData.client,
@@ -431,7 +435,8 @@ export default function NewQuotationForm() {
         // Update existing quotation
         response = await axios.put(
           `http://localhost:5264/api/Quotations/${id}`,
-          quotationPayload
+          quotationPayload,
+          { headers: { 'Authorization': `Bearer ${authToken}` } }
         );
         console.log("Quotation updated:", response.data);
         alert("Quotation updated successfully!");
@@ -439,7 +444,8 @@ export default function NewQuotationForm() {
         // Create new quotation
         response = await axios.post(
           "http://localhost:5264/api/Quotations",
-          quotationPayload
+          quotationPayload,
+          { headers: { 'Authorization': `Bearer ${authToken}` } }
         );
         console.log("Quotation saved:", response.data);
         alert("Quotation saved successfully!");
@@ -952,3 +958,4 @@ export default function NewQuotationForm() {
     </Box>
   );
 }
+
