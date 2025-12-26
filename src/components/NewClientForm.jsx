@@ -35,6 +35,7 @@ export default function NewClientForm({ initialData = null, onSave }) {
 
   const [formData, setFormData] = useState(
     initialData || {
+      id: "", // 🎯 Auto-generated Client ID from backend
       clientName: "",
       clientIdNumber: "",
       clientContactNumber: "",
@@ -69,6 +70,39 @@ export default function NewClientForm({ initialData = null, onSave }) {
   );
 
   const [showSuccess, setShowSuccess] = useState(false);
+  const [nextClientIdLoading, setNextClientIdLoading] = useState(false);
+  const [nextClientIdError, setNextClientIdError] = useState(false);
+
+  // 🎯 Fetch the next Client ID from backend when creating a new client
+  useEffect(() => {
+    if (!id) {
+      const fetchNextClientId = async () => {
+        try {
+          setNextClientIdLoading(true);
+          setNextClientIdError(false);
+          
+          // Call the backend endpoint to get the next Client ID
+          const response = await axios.get("http://localhost:5264/api/clients/next-id");
+          const nextId = response.data.nextId || response.data.id;
+          
+          // Update formData with the fetched Client ID
+          setFormData(prevData => ({
+            ...prevData,
+            id: nextId
+          }));
+          
+          console.log("✓ Next Client ID fetched:", nextId);
+        } catch (error) {
+          console.error("Error fetching next Client ID:", error);
+          setNextClientIdError(true);
+        } finally {
+          setNextClientIdLoading(false);
+        }
+      };
+      
+      fetchNextClientId();
+    }
+  }, []);
 
   // Fetch client data if editing
   useEffect(() => {
@@ -144,24 +178,64 @@ export default function NewClientForm({ initialData = null, onSave }) {
 
   const handleSave = async () => {
     try {
-      // Clean up the payload - remove Id from contacts for new clients
+      // 🎯 IMPORTANT: For new clients, explicitly exclude any ID field from payload
+      // Only the backend/database generates the Client ID
       const payload = id ? formData : {
-        ...formData,
+        clientName: formData.clientName,
+        clientIdNumber: formData.clientIdNumber,
+        clientContactNumber: formData.clientContactNumber,
+        clientAddress: formData.clientAddress,
+        clientEmail: formData.clientEmail,
+        name: formData.name,
+        number: formData.number,
+        group: formData.group,
+        assignedUser: formData.assignedUser,
+        idNumber: formData.idNumber,
+        vatNumber: formData.vatNumber,
+        website: formData.website,
+        phone: formData.phone,
+        routingId: formData.routingId,
+        validVat: formData.validVat,
+        taxExempt: formData.taxExempt,
+        classification: formData.classification,
         contacts: formData.contacts.map(c => ({
           firstName: c.firstName,
           lastName: c.lastName,
           email: c.email,
           phone: c.phone,
           addToInvoices: c.addToInvoices
-        }))
+        })),
+        billingStreet: formData.billingStreet,
+        billingSuite: formData.billingSuite,
+        billingCity: formData.billingCity,
+        billingState: formData.billingState,
+        billingPostalCode: formData.billingPostalCode,
+        billingCountry: formData.billingCountry,
+        shippingStreet: formData.shippingStreet,
+        shippingSuite: formData.shippingSuite,
+        shippingCity: formData.shippingCity,
+        shippingState: formData.shippingState,
+        shippingPostalCode: formData.shippingPostalCode,
+        shippingCountry: formData.shippingCountry,
       };
 
       if (id) {
         // Update existing client
         await axios.put(`http://localhost:5264/api/clients/${id}`, payload);
       } else {
-        // Create new client
-        await axios.post("http://localhost:5264/api/clients", payload);
+        // 🎯 Create new client and capture the response with generated ID
+        const response = await axios.post("http://localhost:5264/api/clients", payload);
+        
+        // 🎯 Extract the auto-generated Client ID from the backend response
+        const generatedClientId = response.data.id;
+        
+        // 🎯 Update formData with the returned ID for future operations
+        setFormData(prevData => ({
+          ...prevData,
+          id: generatedClientId
+        }));
+        
+        console.log("✓ Client created successfully with ID:", generatedClientId);
         
         // 🎯 CRITICAL FIX: Trigger the dashboard refresh after successful creation
         triggerClientRefresh();
@@ -173,6 +247,7 @@ export default function NewClientForm({ initialData = null, onSave }) {
       // Reset form only if it's a new client, not editing
       if (!id && !initialData) {
         setFormData({
+          id: "", // Reset ID, will be fetched again on next page load
           clientName: "",
           clientIdNumber: "",
           clientContactNumber: "",
@@ -297,6 +372,23 @@ export default function NewClientForm({ initialData = null, onSave }) {
               Save
             </Button>
           </Box>
+        </Box>
+
+        {/* Auto-generated Client ID */}
+        <Box sx={{ mb: 4, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
+          <TextField
+            label="Client ID (Auto-generated)"
+            value={nextClientIdLoading ? "Loading..." : nextClientIdError ? "Error loading ID" : formData.id}
+            disabled
+            fullWidth
+            sx={{
+              ...textFieldStyle,
+              "& .MuiOutlinedInput-root.Mui-disabled": {
+                backgroundColor: "#ffffff",
+              },
+            }}
+            helperText="This ID is auto-generated by the system. Not editable."
+          />
         </Box>
 
         {/* Client Details */}

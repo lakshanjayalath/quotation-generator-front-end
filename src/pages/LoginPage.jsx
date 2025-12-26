@@ -16,9 +16,11 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login: setAuthSession } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -59,23 +61,21 @@ export default function LoginPage() {
 
       console.log("Login successful:", response.data);
 
-      // Store token if provided by backend
-      if (response.data.token) {
-        localStorage.setItem("authToken", response.data.token);
-      }
-
-      // Store user data with role
+      // Normalize user data and persist via AuthContext so token is available immediately
       const userData = response.data.user || {
         email: formData.email,
         role: response.data.role || "User",
       };
-      
-      // If role is at root level, add it to user object
+
       if (response.data.role && !userData.role) {
         userData.role = response.data.role;
       }
 
-      localStorage.setItem("user", JSON.stringify(userData));
+      if (!response.data.token) {
+        throw new Error("Login response missing token");
+      }
+
+      setAuthSession(userData, response.data.token);
 
       // Navigate to dashboard
       navigate("/dashboard");

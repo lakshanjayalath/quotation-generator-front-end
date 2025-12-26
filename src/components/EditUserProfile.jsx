@@ -279,26 +279,45 @@ export default function EditUserProfile() {
 
   // Save profile details
   const handleSaveProfile = async () => {
+    if (!token) {
+      showMessage("Not authenticated. Please log in again.", "error");
+      return;
+    }
+
+    // Basic validation to avoid backend 400s on required fields
+    if (!user.firstName?.trim() || !user.lastName?.trim() || !user.email?.trim()) {
+      showMessage("First name, last name, and email are required.", "error");
+      return;
+    }
+
     try {
       setSaving(true);
-      await axios.put(`${API_BASE_URL}/api/users/profile`, {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        street: user.street,
-        city: user.city,
-        state: user.state,
-        postalCode: user.postalCode,
-        country: user.country,
-        language: user.language,
-        preferredContactMethod: user.preferredContactMethod,
-        notifications: user.notifications,
-      }, getAuthHeaders());
+      // Use backend-friendly casing to avoid model binding issues
+      const payload = {
+        FirstName: user.firstName,
+        LastName: user.lastName,
+        Email: user.email,
+        Phone: user.phone,
+        Street: user.street,
+        City: user.city,
+        State: user.state,
+        PostalCode: user.postalCode,
+        Country: user.country,
+        Language: user.language,
+        PreferredContactMethod: user.preferredContactMethod,
+        Notifications: user.notifications,
+      };
+
+      await axios.put(`${API_BASE_URL}/api/users/profile`, payload, getAuthHeaders());
       showMessage("Profile updated successfully");
     } catch (err) {
       console.error("Profile save error", err);
-      showMessage(err.response?.data?.message || "Failed to save profile", "error");
+      const apiMessage = err.response?.data?.message
+        || err.response?.data?.title
+        || (err.response?.data?.errors && JSON.stringify(err.response.data.errors))
+        || err.response?.data
+        || err.message;
+      showMessage(typeof apiMessage === "string" ? apiMessage : "Failed to save profile", "error");
     } finally {
       setSaving(false);
     }
