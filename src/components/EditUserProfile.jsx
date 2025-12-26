@@ -104,6 +104,10 @@ export default function EditUserProfile() {
 
   // Load user profile
   useEffect(() => {
+    console.log("=== EditUserProfile Mount ===");
+    console.log("Token from context:", token ? `${token.substring(0, 20)}...` : "NULL");
+    console.log("Token from localStorage:", localStorage.getItem("authToken") ? "EXISTS" : "NULL");
+    
     if (!token) {
       console.log("No token available yet");
       setLoading(false);
@@ -279,26 +283,60 @@ export default function EditUserProfile() {
 
   // Save profile details
   const handleSaveProfile = async () => {
+    // Get token from context or fallback to localStorage
+    const authToken = token || localStorage.getItem("authToken");
+    
+    console.log("Save Profile - Token from context:", token ? "EXISTS" : "NULL");
+    console.log("Save Profile - Token from localStorage:", localStorage.getItem("authToken") ? "EXISTS" : "NULL");
+    
+    if (!authToken) {
+      showMessage("Not authenticated. Please log out and log back in.", "error");
+      return;
+    }
+
+    // Basic validation to avoid backend 400s on required fields
+    if (!user.firstName?.trim() || !user.lastName?.trim() || !user.email?.trim()) {
+      showMessage("First name, last name, and email are required.", "error");
+      return;
+    }
+
     try {
       setSaving(true);
-      await axios.put(`${API_BASE_URL}/api/users/profile`, {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        street: user.street,
-        city: user.city,
-        state: user.state,
-        postalCode: user.postalCode,
-        country: user.country,
-        language: user.language,
-        preferredContactMethod: user.preferredContactMethod,
-        notifications: user.notifications,
-      }, getAuthHeaders());
+      // Use backend-friendly casing to avoid model binding issues
+      const payload = {
+        FirstName: user.firstName,
+        LastName: user.lastName,
+        Email: user.email,
+        Phone: user.phone,
+        Street: user.street,
+        City: user.city,
+        State: user.state,
+        PostalCode: user.postalCode,
+        Country: user.country,
+        Language: user.language,
+        PreferredContactMethod: user.preferredContactMethod,
+        Notifications: user.notifications,
+      };
+
+      // Use authToken directly instead of getAuthHeaders()
+      await axios.put(`${API_BASE_URL}/api/users/profile`, payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      
       showMessage("Profile updated successfully");
     } catch (err) {
       console.error("Profile save error", err);
-      showMessage(err.response?.data?.message || "Failed to save profile", "error");
+      console.error("Status:", err.response?.status);
+      console.error("Auth header used:", err.config?.headers?.Authorization ? "Present" : "Missing");
+      
+      const apiMessage = err.response?.data?.message
+        || err.response?.data?.title
+        || (err.response?.data?.errors && JSON.stringify(err.response.data.errors))
+        || err.response?.data
+        || err.message;
+      showMessage(typeof apiMessage === "string" ? apiMessage : "Failed to save profile", "error");
     } finally {
       setSaving(false);
     }

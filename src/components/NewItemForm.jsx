@@ -160,8 +160,8 @@ export default function NewItemForm({ initialData = null, onSave }) {
       newErrors.price = "Price must be a valid positive number";
     }
 
-    if (!Number.isInteger(formData.qty) || formData.qty <= 0) {
-      newErrors.qty = "Quantity must be a valid positive integer";
+    if (!Number.isFinite(formData.qty) || formData.qty <= 0) {
+      newErrors.qty = "Quantity must be greater than 0";
     }
 
     setErrors(newErrors);
@@ -172,13 +172,21 @@ export default function NewItemForm({ initialData = null, onSave }) {
     if (validateForm()) {
       try {
         const itemId = id || initialData?.id || itemFromState?.id;
+        // Normalize payload keys to match backend contract (Title/Quantity expected)
+        const payload = {
+          Title: formData.item,
+          Description: formData.description,
+          Price: Number(formData.price),
+          Quantity: Number(formData.qty),
+          ImageUrl: formData.imageUrl,
+        };
         
         if (isEditMode && itemId) {
           // Update existing item
-          await axios.put(`http://localhost:5264/api/items/${itemId}`, formData);
+          await axios.put(`http://localhost:5264/api/items/${itemId}`, payload);
         } else {
           // Create new item
-          await axios.post("http://localhost:5264/api/items", formData);
+          await axios.post("http://localhost:5264/api/items", payload);
         }
         
         setShowSuccess(true);
@@ -203,7 +211,10 @@ export default function NewItemForm({ initialData = null, onSave }) {
         }, 1500);
       } catch (error) {
         console.error("Error saving item:", error);
-        alert(`Failed to ${isEditMode ? 'update' : 'save'} item. Please try again.`);
+        const apiMessage = error.response?.data?.message
+          || (error.response?.data ? JSON.stringify(error.response.data) : null)
+          || error.message;
+        alert(`Failed to ${isEditMode ? 'update' : 'save'} item. ${apiMessage || 'Please try again.'}`);
       }
     }
   };
