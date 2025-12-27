@@ -73,6 +73,18 @@ export default function Report() {
     return Number.isFinite(n) ? n : null;
   };
 
+  // Normalize action type values for backend compatibility
+  const normalizeActionType = (v) => {
+    if (!v) return "all";
+    const s = String(v).trim().toLowerCase();
+    if (s === "created" || s === "create") return "created";
+    if (s === "updated" || s === "update") return "updated";
+    if (s === "deleted" || s === "delete") return "deleted";
+    if (s === "login") return "login";
+    if (s === "all") return "all";
+    return "all";
+  };
+
   // Build request payload matching ReportRequestDto on backend
   const buildPayload = (includeOptions = true, overrideSort = null) => {
     // normalize dates: send null instead of empty string
@@ -85,6 +97,7 @@ export default function Report() {
         startDate: startDate,
         endDate: endDate,
         includeDeleted: !!formData.includeDeleted,
+        actionType: normalizeActionType(formData.actionType),
       },
       options: includeOptions
         ? {
@@ -132,6 +145,7 @@ export default function Report() {
       const payload = {
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+        actionType: normalizeActionType(formData.actionType),
       };
 
       const response = await axios.post("http://localhost:5264/api/activitylogs/filter", payload);
@@ -140,7 +154,7 @@ export default function Report() {
       const mappedData = Array.isArray(response.data) 
         ? response.data.map((log) => ({
             Date: log.timestamp ? new Date(log.timestamp).toLocaleString() : "-",
-            User: log.userName || log.user || "-",
+            User: log.performedBy || log.userName || log.user || "-",
             ActionType: log.actionType || log.action || "-",
             EntityName: log.entityName || log.entity || "-",
             Description: log.description || log.details || "-",
