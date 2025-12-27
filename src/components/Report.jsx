@@ -40,20 +40,11 @@ export default function Report() {
     includeDeleted: false,
 
     // Filters
-    activity: "All",
-    actionType: "All", // New filter for Activity report
-    range: "All",
     startDate: "",
     endDate: "",
-    status: "All",
-    client: "All",
-    user: "All",
-    minAmount: "",
-    maxAmount: "",
-    groupBy: "None",
-    sortBy: "Newest",
+    actionType: "All",
+    quotationType: "All",
     output: "PDF",
-    search: "",
   });
 
   const [reportData, setReportData] = useState([]);
@@ -82,49 +73,21 @@ export default function Report() {
     return Number.isFinite(n) ? n : null;
   };
 
-  // Map UI sortBy dropdown to backend column name (optional helper)
-  const mapSortByToColumn = (uiSortBy) => {
-    const map = {
-      Newest: "Date DESC",
-      Oldest: "Date ASC",
-      HighAmount: "Amount DESC",
-      LowAmount: "Amount ASC",
-    };
-    return map[uiSortBy] || "";
-  };
-
   // Build request payload matching ReportRequestDto on backend
   const buildPayload = (includeOptions = true, overrideSort = null) => {
     // normalize dates: send null instead of empty string
     const startDate = formData.startDate && formData.startDate.length > 0 ? formData.startDate : null;
     const endDate = formData.endDate && formData.endDate.length > 0 ? formData.endDate : null;
 
-    // numbers
-    const minAmount = toNullableNumber(formData.minAmount);
-    const maxAmount = toNullableNumber(formData.maxAmount);
-
-    // pick sort: header click takes precedence
-    let sortValue = overrideSort ?? mapSortByToColumn(formData.sortBy);
-    if (!sortValue) sortValue = undefined;
-
     const payload = {
       reportType: formData.reportType,
       filters: {
-        activity: formData.activity || null,
-        status: formData.status || null,
-        client: formData.client || null,
-        user: formData.user || null,
         startDate: startDate,
         endDate: endDate,
-        minAmount: minAmount,
-        maxAmount: maxAmount,
-        search: formData.search || null,
         includeDeleted: !!formData.includeDeleted,
       },
       options: includeOptions
         ? {
-            groupBy: formData.groupBy || null,
-            sortBy: sortValue,
             format: formData.output || null,
             sendEmail: !!formData.sendEmail,
           }
@@ -169,7 +132,6 @@ export default function Report() {
       const payload = {
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
-        actionType: formData.actionType === "All" ? null : formData.actionType,
       };
 
       const response = await axios.post("http://localhost:5264/api/activitylogs/filter", payload);
@@ -405,11 +367,10 @@ export default function Report() {
           Reports
         </Typography>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr", gap: 4 }}>
           <Box>
             <TextField select label="Report" fullWidth value={formData.reportType} onChange={handleChange("reportType")} sx={textFieldStyle}>
               <MenuItem value="Activity">Activity</MenuItem>
-              <MenuItem value="Invoices">Invoices</MenuItem>
               <MenuItem value="Quotes">Quotes</MenuItem>
               <MenuItem value="Clients">Clients</MenuItem>
               <MenuItem value="Products">Products</MenuItem>
@@ -421,19 +382,7 @@ export default function Report() {
               <FormControlLabel control={<Switch checked={formData.includeDeleted} onChange={handleChange("includeDeleted")} sx={switchStyle} />} label="Include Deleted" />
             </Box>
 
-            <TextField label="Search" fullWidth value={formData.search} onChange={handleChange("search")} sx={{ mt: 3, ...textFieldStyle }} />
-
-            <TextField select label="Status" fullWidth value={formData.status} onChange={handleChange("status")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Paid">Paid</MenuItem>
-              <MenuItem value="Unpaid">Unpaid</MenuItem>
-              <MenuItem value="Overdue">Overdue</MenuItem>
-              <MenuItem value="Cancelled">Cancelled</MenuItem>
-              <MenuItem value="Draft">Draft</MenuItem>
-              <MenuItem value="Sent">Sent</MenuItem>
-            </TextField>
-
-            <TextField select label="Activity" fullWidth value={formData.activity} onChange={handleChange("activity")} sx={{ mt: 3, ...textFieldStyle }}>
+            <TextField select label="Action Type" fullWidth value={formData.actionType} onChange={handleChange("actionType")} sx={{ mt: 3, ...textFieldStyle }}>
               <MenuItem value="All">All</MenuItem>
               <MenuItem value="Created">Created</MenuItem>
               <MenuItem value="Updated">Updated</MenuItem>
@@ -441,59 +390,21 @@ export default function Report() {
               <MenuItem value="Login">Login</MenuItem>
             </TextField>
 
-            {formData.reportType === "Activity" && (
-              <TextField select label="Action Type" fullWidth value={formData.actionType} onChange={handleChange("actionType")} sx={{ mt: 3, ...textFieldStyle }}>
+            {formData.reportType === "Quotes" && (
+              <TextField select label="Quotation Type" fullWidth value={formData.quotationType} onChange={handleChange("quotationType")} sx={{ mt: 3, ...textFieldStyle }}>
                 <MenuItem value="All">All</MenuItem>
-                <MenuItem value="Created">Created</MenuItem>
-                <MenuItem value="Updated">Updated</MenuItem>
-                <MenuItem value="Deleted">Deleted</MenuItem>
+                <MenuItem value="Sent">Sent</MenuItem>
+                <MenuItem value="Accepted">Accepted</MenuItem>
+                <MenuItem value="Declined">Declined</MenuItem>
+                <MenuItem value="Expired">Expired</MenuItem>
+                <MenuItem value="Draft">Draft</MenuItem>
               </TextField>
             )}
-
-            <TextField select label="Client" fullWidth value={formData.client} onChange={handleChange("client")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="All">All Clients</MenuItem>
-              <MenuItem value="ClientA">Client A</MenuItem>
-              <MenuItem value="ClientB">Client B</MenuItem>
-              <MenuItem value="ClientC">Client C</MenuItem>
-            </TextField>
-
-            <TextField select label="User / Staff" fullWidth value={formData.user} onChange={handleChange("user")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="All">All Users</MenuItem>
-              <MenuItem value="Admin">Admin</MenuItem>
-              <MenuItem value="Staff1">Staff 1</MenuItem>
-              <MenuItem value="Staff2">Staff 2</MenuItem>
-            </TextField>
           </Box>
 
           <Box>
             <TextField label="Start Date" type="date" fullWidth value={formData.startDate} onChange={handleChange("startDate")} sx={{ ...textFieldStyle }} InputLabelProps={{ shrink: true }} />
             <TextField label="End Date" type="date" fullWidth value={formData.endDate} onChange={handleChange("endDate")} sx={{ mt: 3, ...textFieldStyle }} InputLabelProps={{ shrink: true }} />
-
-            <TextField select label="Range" fullWidth value={formData.range} onChange={handleChange("range")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Today">Today</MenuItem>
-              <MenuItem value="This Week">This Week</MenuItem>
-              <MenuItem value="This Month">This Month</MenuItem>
-              <MenuItem value="Custom">Custom Range</MenuItem>
-            </TextField>
-
-            <TextField label="Min Amount" fullWidth value={formData.minAmount} onChange={handleChange("minAmount")} sx={{ mt: 3, ...textFieldStyle }} />
-            <TextField label="Max Amount" fullWidth value={formData.maxAmount} onChange={handleChange("maxAmount")} sx={{ mt: 3, ...textFieldStyle }} />
-
-            <TextField select label="Group By" fullWidth value={formData.groupBy} onChange={handleChange("groupBy")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="None">None</MenuItem>
-              <MenuItem value="Client">Client</MenuItem>
-              <MenuItem value="Date">Date</MenuItem>
-              <MenuItem value="User">User</MenuItem>
-              <MenuItem value="Status">Status</MenuItem>
-            </TextField>
-
-            <TextField select label="Sort By" fullWidth value={formData.sortBy} onChange={handleChange("sortBy")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="Newest">Newest First</MenuItem>
-              <MenuItem value="Oldest">Oldest First</MenuItem>
-              <MenuItem value="HighAmount">High Amount</MenuItem>
-              <MenuItem value="LowAmount">Low Amount</MenuItem>
-            </TextField>
 
             <TextField select label="Output Format" fullWidth value={formData.output} onChange={handleChange("output")} sx={{ mt: 3, ...textFieldStyle }}>
               <MenuItem value="PDF">PDF</MenuItem>
@@ -628,7 +539,6 @@ function mapColumnNameForBackend(displayColumn) {
 function getTableColumns(reportType) {
   const columnMap = {
     Activity: ["Date", "User", "ActionType", "EntityName", "Description"],
-    Invoices: ["Invoice ID", "Client", "Amount", "Date", "Status", "Due Date"],
     Quotes: ["Quote ID", "Client", "Amount", "Date", "Status", "Expiry Date"],
     Clients: ["Client Name", "Email", "Phone", "Address", "Status"],
     Products: ["Product Name", "SKU", "Category", "Price", "Stock"],
