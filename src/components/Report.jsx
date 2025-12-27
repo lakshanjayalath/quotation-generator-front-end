@@ -85,6 +85,15 @@ export default function Report() {
     return "all";
   };
 
+  // Normalize quotation type for backend compatibility
+  const normalizeQuotationType = (v) => {
+    if (!v) return "all";
+    const s = String(v).trim().toLowerCase();
+    if (["sent", "accepted", "declined", "expired", "draft"].includes(s)) return s;
+    if (s === "all") return "all";
+    return "all";
+  };
+
   // Build request payload matching ReportRequestDto on backend
   const buildPayload = (includeOptions = true, overrideSort = null) => {
     // normalize dates: send null instead of empty string
@@ -98,6 +107,8 @@ export default function Report() {
         endDate: endDate,
         includeDeleted: !!formData.includeDeleted,
         actionType: normalizeActionType(formData.actionType),
+        // FIX: include quotationType so backend can filter Quotes by status
+        quotationType: normalizeQuotationType(formData.quotationType),
       },
       options: includeOptions
         ? {
@@ -120,6 +131,12 @@ export default function Report() {
       // Use ActivityLog API for Activity report type
       if (formData.reportType === "Activity") {
         await fetchActivityLogData();
+        return;
+      }
+
+      // For Quotes report, send quotation type explicitly using dedicated helper
+      if (formData.reportType === "Quotes") {
+        await fetchQuotesData(overrideSort);
         return;
       }
 
@@ -168,6 +185,44 @@ export default function Report() {
       console.error("Error fetching activity logs:", error);
       const msg = error?.response?.data?.message || error?.message || "Unknown error";
       setSnackbar({ open: true, message: `Failed to load activity logs: ${msg}`, severity: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Quotes data with quotation type filter (reference pattern from action type)
+  const fetchQuotesData = async (overrideSort = null) => {
+    try {
+      // Build payload specifically for Quotes with normalized quotation type
+      const startDate = formData.startDate && formData.startDate.length > 0 ? new Date(formData.startDate).toISOString() : null;
+      const endDate = formData.endDate && formData.endDate.length > 0 ? new Date(formData.endDate).toISOString() : null;
+
+      const payload = {
+        reportType: "Quotes",
+        filters: {
+          startDate,
+          endDate,
+          includeDeleted: !!formData.includeDeleted,
+          quotationType: normalizeQuotationType(formData.quotationType),
+        },
+        options: {
+          format: formData.output || null,
+          sendEmail: !!formData.sendEmail,
+          sortBy: overrideSort || null,
+        },
+      };
+
+      const response = await axios.post("http://localhost:5264/api/reports/generate", payload);
+
+      // Use backend-provided rows directly; keys already match table headers
+      const rows = Array.isArray(response.data) ? response.data : [];
+      setReportData(rows);
+      setViewDialogOpen(true);
+      setSnackbar({ open: true, message: "Quotes data loaded successfully", severity: "success" });
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      const msg = error?.response?.data?.message || error?.message || "Unknown error";
+      setSnackbar({ open: true, message: `Failed to load quotes: ${msg}`, severity: "error" });
     } finally {
       setLoading(false);
     }
