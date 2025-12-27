@@ -86,6 +86,7 @@ export default function EditUserProfile() {
   const [quotationTotal, setQuotationTotal] = useState(0);
   const [quotationStatus, setQuotationStatus] = useState("");
   const [quotationsLoading, setQuotationsLoading] = useState(false);
+  const [quotationSummary, setQuotationSummary] = useState({ total: 0, send: 0, accepted: 0, declined: 0, expired: 0 });
 
   // Axios config with auth header
   const getAuthHeaders = useCallback(() => ({
@@ -159,12 +160,49 @@ export default function EditUserProfile() {
     }
   }, [token, quotationPage, quotationPageSize, quotationStatus, getAuthHeaders]);
 
+  // Load quotation summary counts for current user
+  const loadQuotationSummary = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/users/profile/quotations/summary`, getAuthHeaders());
+      const data = res.data || {};
+      // Support multiple casing/key variants
+      setQuotationSummary({
+        total: data.total ?? data.Total ?? 0,
+        send: data.sent ?? data.Send ?? 0,
+        accepted: data.accepted ?? data.Accepted ?? 0,
+        declined: data.declined ?? data.Declined ?? 0,
+        expired: data.expired ?? data.Expired ?? 0,
+      });
+    } catch (err) {
+      console.warn("Quotation summary endpoint not available, computing from history as fallback.");
+      // Fallback: compute from current quotations in memory
+      const counts = { total: 0, send: 0, accepted: 0, declined: 0, expired: 0 };
+      const items = Array.isArray(quotations) ? quotations : [];
+      counts.total = items.length;
+      items.forEach((q) => {
+        const s = String(q.status || q.Status || "").toLowerCase();
+        if (s === "sent" || s === "pending") counts.send += 1;
+        else if (s === "accepted" || s === "approved") counts.accepted += 1;
+        else if (s === "declined" || s === "rejected") counts.declined += 1;
+        else if (s === "expired") counts.expired += 1;
+      });
+      setQuotationSummary(counts);
+    }
+  }, [token, quotations, getAuthHeaders]);
+
   // Load quotations when tab changes to quotation history or pagination changes
   useEffect(() => {
     if (tab === 1) {
       loadQuotations();
+      loadQuotationSummary();
     }
   }, [tab, loadQuotations]);
+
+  // Also load summary on initial mount (for header cards visibility)
+  useEffect(() => {
+    loadQuotationSummary();
+  }, [loadQuotationSummary]);
 
   const handleChange = field => e => setUser({ ...user, [field]: e.target.value });
   const handleSwitch = field => e => setUser({ ...user, [field]: e.target.checked });
@@ -468,10 +506,16 @@ export default function EditUserProfile() {
       {/* Quotation Summary */}
       <Typography variant="h6" sx={{ mb: 2 }}>Quotation Summary</Typography>
       <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 3, overflowX: "auto" }}>
-        {["Total", "Pending", "Approved", "Rejected", "Value"].map(t => (
-          <Card key={t} sx={{ p: 2, minWidth: 120, flex: "0 0 auto" }}>
-            <Typography variant="subtitle2">{t}</Typography>
-            <Typography variant="h5">0</Typography>
+        {[
+          { label: "Total", value: quotationSummary.total },
+          { label: "Send", value: quotationSummary.send },
+          { label: "Accepted", value: quotationSummary.accepted },
+          { label: "Declined", value: quotationSummary.declined },
+          { label: "Expired", value: quotationSummary.expired },
+        ].map(({ label, value }) => (
+          <Card key={label} sx={{ p: 2, minWidth: 120, flex: "0 0 auto" }}>
+            <Typography variant="subtitle2">{label}</Typography>
+            <Typography variant="h5">{value}</Typography>
           </Card>
         ))}
       </Box>
@@ -604,18 +648,19 @@ export default function EditUserProfile() {
         <Paper sx={{ p: 4, mt: 3 }}>
           {/* Status Filter */}
           <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" }}>
-            <TextField
+              <TextField
               select
               label="Filter by Status"
               value={quotationStatus}
               onChange={handleStatusFilterChange}
               size="small"
-              sx={{ minWidth: 150 }}
+              sx={{ minWidth: 180 }}
             >
               <MenuItem value="">All</MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
-              <MenuItem value="Approved">Approved</MenuItem>
-              <MenuItem value="Rejected">Rejected</MenuItem>
+              <MenuItem value="Sent">Sent</MenuItem>
+              <MenuItem value="Accepted">Accepted</MenuItem>
+              <MenuItem value="Declined">Declined</MenuItem>
+              <MenuItem value="Expired">Expired</MenuItem>
             </TextField>
           </Box>
 
@@ -638,20 +683,21 @@ export default function EditUserProfile() {
                   {quotations.length > 0 ? (
                     quotations.map(q => (
                       <TableRow key={q.id}>
-                        <TableCell>{q.quoteNo}</TableCell>
-                        <TableCell>{q.date}</TableCell>
+                        <TableCell>{q.quoteNo || q.quotationNumber || q.quoteNumber || q.number || "-"}</TableCell>
+                        <TableCell>{q.date || q.quoteDate || "-"}</TableCell>
                         <TableCell>
                           <Chip 
-                            label={q.status} 
+                            label={q.status || q.Status || "-"}
                             color={
-                              q.status === "Approved" ? "success" : 
-                              q.status === "Rejected" ? "error" : 
+                              (q.status === "Accepted" || q.Status === "Accepted") ? "success" : 
+                              (q.status === "Declined" || q.Status === "Declined") ? "error" : 
+                              (q.status === "Expired" || q.Status === "Expired") ? "default" :
                               "warning"
                             }
                             size="small"
                           />
                         </TableCell>
-                        <TableCell>{q.amount}</TableCell>
+                        <TableCell>{q.amount ?? q.NetAmount ?? q.netAmount ?? 0}</TableCell>
                       </TableRow>
                     ))
                   ) : (

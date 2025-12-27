@@ -40,20 +40,11 @@ export default function Report() {
     includeDeleted: false,
 
     // Filters
-    activity: "All",
-    actionType: "All", // New filter for Activity report
-    range: "All",
     startDate: "",
     endDate: "",
-    status: "All",
-    client: "All",
-    user: "All",
-    minAmount: "",
-    maxAmount: "",
-    groupBy: "None",
-    sortBy: "Newest",
+    actionType: "All",
+    quotationType: "All",
     output: "PDF",
-    search: "",
   });
 
   const [reportData, setReportData] = useState([]);
@@ -82,15 +73,25 @@ export default function Report() {
     return Number.isFinite(n) ? n : null;
   };
 
-  // Map UI sortBy dropdown to backend column name (optional helper)
-  const mapSortByToColumn = (uiSortBy) => {
-    const map = {
-      Newest: "Date DESC",
-      Oldest: "Date ASC",
-      HighAmount: "Amount DESC",
-      LowAmount: "Amount ASC",
-    };
-    return map[uiSortBy] || "";
+  // Normalize action type values for backend compatibility
+  const normalizeActionType = (v) => {
+    if (!v) return "all";
+    const s = String(v).trim().toLowerCase();
+    if (s === "created" || s === "create") return "created";
+    if (s === "updated" || s === "update") return "updated";
+    if (s === "deleted" || s === "delete") return "deleted";
+    if (s === "login") return "login";
+    if (s === "all") return "all";
+    return "all";
+  };
+
+  // Normalize quotation type for backend compatibility
+  const normalizeQuotationType = (v) => {
+    if (!v) return "all";
+    const s = String(v).trim().toLowerCase();
+    if (["sent", "accepted", "declined", "expired", "draft"].includes(s)) return s;
+    if (s === "all") return "all";
+    return "all";
   };
 
   // Build request payload matching ReportRequestDto on backend
@@ -99,32 +100,18 @@ export default function Report() {
     const startDate = formData.startDate && formData.startDate.length > 0 ? formData.startDate : null;
     const endDate = formData.endDate && formData.endDate.length > 0 ? formData.endDate : null;
 
-    // numbers
-    const minAmount = toNullableNumber(formData.minAmount);
-    const maxAmount = toNullableNumber(formData.maxAmount);
-
-    // pick sort: header click takes precedence
-    let sortValue = overrideSort ?? mapSortByToColumn(formData.sortBy);
-    if (!sortValue) sortValue = undefined;
-
     const payload = {
       reportType: formData.reportType,
       filters: {
-        activity: formData.activity || null,
-        status: formData.status || null,
-        client: formData.client || null,
-        user: formData.user || null,
         startDate: startDate,
         endDate: endDate,
-        minAmount: minAmount,
-        maxAmount: maxAmount,
-        search: formData.search || null,
         includeDeleted: !!formData.includeDeleted,
+        actionType: normalizeActionType(formData.actionType),
+        // FIX: include quotationType so backend can filter Quotes by status
+        quotationType: normalizeQuotationType(formData.quotationType),
       },
       options: includeOptions
         ? {
-            groupBy: formData.groupBy || null,
-            sortBy: sortValue,
             format: formData.output || null,
             sendEmail: !!formData.sendEmail,
           }
@@ -144,6 +131,12 @@ export default function Report() {
       // Use ActivityLog API for Activity report type
       if (formData.reportType === "Activity") {
         await fetchActivityLogData();
+        return;
+      }
+
+      // For Quotes report, send quotation type explicitly using dedicated helper
+      if (formData.reportType === "Quotes") {
+        await fetchQuotesData(overrideSort);
         return;
       }
 
@@ -169,7 +162,7 @@ export default function Report() {
       const payload = {
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
-        actionType: formData.actionType === "All" ? null : formData.actionType,
+        actionType: normalizeActionType(formData.actionType),
       };
 
       const response = await axios.post("http://localhost:5264/api/activitylogs/filter", payload);
@@ -178,7 +171,7 @@ export default function Report() {
       const mappedData = Array.isArray(response.data) 
         ? response.data.map((log) => ({
             Date: log.timestamp ? new Date(log.timestamp).toLocaleString() : "-",
-            User: log.userName || log.user || "-",
+            User: log.performedBy || log.userName || log.user || "-",
             ActionType: log.actionType || log.action || "-",
             EntityName: log.entityName || log.entity || "-",
             Description: log.description || log.details || "-",
@@ -192,6 +185,44 @@ export default function Report() {
       console.error("Error fetching activity logs:", error);
       const msg = error?.response?.data?.message || error?.message || "Unknown error";
       setSnackbar({ open: true, message: `Failed to load activity logs: ${msg}`, severity: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Quotes data with quotation type filter (reference pattern from action type)
+  const fetchQuotesData = async (overrideSort = null) => {
+    try {
+      // Build payload specifically for Quotes with normalized quotation type
+      const startDate = formData.startDate && formData.startDate.length > 0 ? new Date(formData.startDate).toISOString() : null;
+      const endDate = formData.endDate && formData.endDate.length > 0 ? new Date(formData.endDate).toISOString() : null;
+
+      const payload = {
+        reportType: "Quotes",
+        filters: {
+          startDate,
+          endDate,
+          includeDeleted: !!formData.includeDeleted,
+          quotationType: normalizeQuotationType(formData.quotationType),
+        },
+        options: {
+          format: formData.output || null,
+          sendEmail: !!formData.sendEmail,
+          sortBy: overrideSort || null,
+        },
+      };
+
+      const response = await axios.post("http://localhost:5264/api/reports/generate", payload);
+
+      // Use backend-provided rows directly; keys already match table headers
+      const rows = Array.isArray(response.data) ? response.data : [];
+      setReportData(rows);
+      setViewDialogOpen(true);
+      setSnackbar({ open: true, message: "Quotes data loaded successfully", severity: "success" });
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      const msg = error?.response?.data?.message || error?.message || "Unknown error";
+      setSnackbar({ open: true, message: `Failed to load quotes: ${msg}`, severity: "error" });
     } finally {
       setLoading(false);
     }
@@ -405,11 +436,10 @@ export default function Report() {
           Reports
         </Typography>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr", gap: 4 }}>
           <Box>
             <TextField select label="Report" fullWidth value={formData.reportType} onChange={handleChange("reportType")} sx={textFieldStyle}>
               <MenuItem value="Activity">Activity</MenuItem>
-              <MenuItem value="Invoices">Invoices</MenuItem>
               <MenuItem value="Quotes">Quotes</MenuItem>
               <MenuItem value="Clients">Clients</MenuItem>
               <MenuItem value="Products">Products</MenuItem>
@@ -421,19 +451,7 @@ export default function Report() {
               <FormControlLabel control={<Switch checked={formData.includeDeleted} onChange={handleChange("includeDeleted")} sx={switchStyle} />} label="Include Deleted" />
             </Box>
 
-            <TextField label="Search" fullWidth value={formData.search} onChange={handleChange("search")} sx={{ mt: 3, ...textFieldStyle }} />
-
-            <TextField select label="Status" fullWidth value={formData.status} onChange={handleChange("status")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Paid">Paid</MenuItem>
-              <MenuItem value="Unpaid">Unpaid</MenuItem>
-              <MenuItem value="Overdue">Overdue</MenuItem>
-              <MenuItem value="Cancelled">Cancelled</MenuItem>
-              <MenuItem value="Draft">Draft</MenuItem>
-              <MenuItem value="Sent">Sent</MenuItem>
-            </TextField>
-
-            <TextField select label="Activity" fullWidth value={formData.activity} onChange={handleChange("activity")} sx={{ mt: 3, ...textFieldStyle }}>
+            <TextField select label="Action Type" fullWidth value={formData.actionType} onChange={handleChange("actionType")} sx={{ mt: 3, ...textFieldStyle }}>
               <MenuItem value="All">All</MenuItem>
               <MenuItem value="Created">Created</MenuItem>
               <MenuItem value="Updated">Updated</MenuItem>
@@ -441,59 +459,21 @@ export default function Report() {
               <MenuItem value="Login">Login</MenuItem>
             </TextField>
 
-            {formData.reportType === "Activity" && (
-              <TextField select label="Action Type" fullWidth value={formData.actionType} onChange={handleChange("actionType")} sx={{ mt: 3, ...textFieldStyle }}>
+            {formData.reportType === "Quotes" && (
+              <TextField select label="Quotation Type" fullWidth value={formData.quotationType} onChange={handleChange("quotationType")} sx={{ mt: 3, ...textFieldStyle }}>
                 <MenuItem value="All">All</MenuItem>
-                <MenuItem value="Created">Created</MenuItem>
-                <MenuItem value="Updated">Updated</MenuItem>
-                <MenuItem value="Deleted">Deleted</MenuItem>
+                <MenuItem value="Sent">Sent</MenuItem>
+                <MenuItem value="Accepted">Accepted</MenuItem>
+                <MenuItem value="Declined">Declined</MenuItem>
+                <MenuItem value="Expired">Expired</MenuItem>
+                <MenuItem value="Draft">Draft</MenuItem>
               </TextField>
             )}
-
-            <TextField select label="Client" fullWidth value={formData.client} onChange={handleChange("client")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="All">All Clients</MenuItem>
-              <MenuItem value="ClientA">Client A</MenuItem>
-              <MenuItem value="ClientB">Client B</MenuItem>
-              <MenuItem value="ClientC">Client C</MenuItem>
-            </TextField>
-
-            <TextField select label="User / Staff" fullWidth value={formData.user} onChange={handleChange("user")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="All">All Users</MenuItem>
-              <MenuItem value="Admin">Admin</MenuItem>
-              <MenuItem value="Staff1">Staff 1</MenuItem>
-              <MenuItem value="Staff2">Staff 2</MenuItem>
-            </TextField>
           </Box>
 
           <Box>
             <TextField label="Start Date" type="date" fullWidth value={formData.startDate} onChange={handleChange("startDate")} sx={{ ...textFieldStyle }} InputLabelProps={{ shrink: true }} />
             <TextField label="End Date" type="date" fullWidth value={formData.endDate} onChange={handleChange("endDate")} sx={{ mt: 3, ...textFieldStyle }} InputLabelProps={{ shrink: true }} />
-
-            <TextField select label="Range" fullWidth value={formData.range} onChange={handleChange("range")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Today">Today</MenuItem>
-              <MenuItem value="This Week">This Week</MenuItem>
-              <MenuItem value="This Month">This Month</MenuItem>
-              <MenuItem value="Custom">Custom Range</MenuItem>
-            </TextField>
-
-            <TextField label="Min Amount" fullWidth value={formData.minAmount} onChange={handleChange("minAmount")} sx={{ mt: 3, ...textFieldStyle }} />
-            <TextField label="Max Amount" fullWidth value={formData.maxAmount} onChange={handleChange("maxAmount")} sx={{ mt: 3, ...textFieldStyle }} />
-
-            <TextField select label="Group By" fullWidth value={formData.groupBy} onChange={handleChange("groupBy")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="None">None</MenuItem>
-              <MenuItem value="Client">Client</MenuItem>
-              <MenuItem value="Date">Date</MenuItem>
-              <MenuItem value="User">User</MenuItem>
-              <MenuItem value="Status">Status</MenuItem>
-            </TextField>
-
-            <TextField select label="Sort By" fullWidth value={formData.sortBy} onChange={handleChange("sortBy")} sx={{ mt: 3, ...textFieldStyle }}>
-              <MenuItem value="Newest">Newest First</MenuItem>
-              <MenuItem value="Oldest">Oldest First</MenuItem>
-              <MenuItem value="HighAmount">High Amount</MenuItem>
-              <MenuItem value="LowAmount">Low Amount</MenuItem>
-            </TextField>
 
             <TextField select label="Output Format" fullWidth value={formData.output} onChange={handleChange("output")} sx={{ mt: 3, ...textFieldStyle }}>
               <MenuItem value="PDF">PDF</MenuItem>
@@ -628,7 +608,6 @@ function mapColumnNameForBackend(displayColumn) {
 function getTableColumns(reportType) {
   const columnMap = {
     Activity: ["Date", "User", "ActionType", "EntityName", "Description"],
-    Invoices: ["Invoice ID", "Client", "Amount", "Date", "Status", "Due Date"],
     Quotes: ["Quote ID", "Client", "Amount", "Date", "Status", "Expiry Date"],
     Clients: ["Client Name", "Email", "Phone", "Address", "Status"],
     Products: ["Product Name", "SKU", "Category", "Price", "Stock"],
