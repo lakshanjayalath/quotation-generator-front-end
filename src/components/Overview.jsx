@@ -210,6 +210,7 @@ const Overview = ({ collapsed }) => {
                                     <Bar dataKey="sent" fill="#03A9F4" name="Sent" />
                                     <Bar dataKey="accepted" fill="#4CAF50" name="Accepted" />
                                     <Bar dataKey="rejected" fill="#F44336" name="Rejected" />
+                                    <Bar dataKey="expired" fill="#9E9E9E" name="Expired" />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
