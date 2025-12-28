@@ -206,10 +206,10 @@ const Overview = ({ collapsed }) => {
                                     <Legend />
                                     
                                     {/* Data keys must match your C# QuotationDataPoint DTO properties */}
-                                    <Bar dataKey="draft" fill="#FFC107" name="Draft" stackId="a" />
-                                    <Bar dataKey="sent" fill="#03A9F4" name="Sent" stackId="a" />
-                                    <Bar dataKey="accepted" fill="#4CAF50" name="Accepted" stackId="a" />
-                                    <Bar dataKey="rejected" fill="#F44336" name="Rejected" stackId="a" />
+                                    <Bar dataKey="draft" fill="#FFC107" name="Draft" />
+                                    <Bar dataKey="sent" fill="#03A9F4" name="Sent" />
+                                    <Bar dataKey="accepted" fill="#4CAF50" name="Accepted" />
+                                    <Bar dataKey="rejected" fill="#F44336" name="Rejected" />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
