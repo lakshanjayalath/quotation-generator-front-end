@@ -68,7 +68,7 @@ function RecentActivity() {
   }, [clientRefreshKey, quotationRefreshKey]);
 
   return (
-    <Box sx={{ width: "100%", height: 415, overflowY: "auto", backgroundColor: "#fff", borderRadius: 2, boxShadow: 2, p: 2, height: 400 }}>
+    <Box sx={{ width: "100%", height: 415, overflowY: "auto", backgroundColor: "#fff", borderRadius: 2, boxShadow: 2, p: 2 }}>
       <Typography variant="h6" gutterBottom>
         Recent Activity
       </Typography>

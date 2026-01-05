@@ -37,6 +37,8 @@ import axios from "axios";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useQuotationRefresh } from "../context/QuotationRefreshContext";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5264";
+
 export default function NewQuotationForm() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -145,7 +147,10 @@ export default function NewQuotationForm() {
     const fetchClients = async () => {
       try {
         setLoadingClients(true);
-        const response = await axios.get("http://localhost:5264/api/clients");
+        const authToken = localStorage.getItem("authToken");
+        const response = await axios.get(`${API_BASE}/api/clients`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
         setClients(response.data);
       } catch (error) {
         console.error("Error fetching clients:", error);
@@ -162,7 +167,10 @@ export default function NewQuotationForm() {
     const fetchItems = async () => {
       try {
         setLoadingItems(true);
-        const response = await axios.get("http://localhost:5264/api/items");
+        const authToken = localStorage.getItem("authToken");
+        const response = await axios.get(`${API_BASE}/api/items`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
         setAvailableItems(response.data);
       } catch (error) {
         console.error("Error fetching items:", error);
