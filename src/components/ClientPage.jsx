@@ -22,9 +22,48 @@ import {
 import { useNavigate } from "react-router-dom";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import HomeIcon from "@mui/icons-material/Home";
+import { useClientRefresh } from "../context/ClientRefreshContext";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5264";
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("authToken");
+  return token ? { Authorization: `Bearer ${token}` } : null;
+};
+
+  const logClientActivity = async ({ actionType, description, recordId }) => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
+
+    try {
+      await fetch(`${API_BASE}/api/activitylogs`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entityName: "Client",
+          recordId,
+          actionType,
+          description,
+        }),
+      });
+      console.log("✓ Activity logged:", actionType, description);
+    } catch (err) {
+      console.error("Failed to log client activity:", err);
+    }
+  };
 
 // ✅ Row Component
-function ClientRow({ row, isSelected, handleClick, handleMenuOpen, anchorEl, menuRowId, handleMenuClose, handleEdit, handleDelete }) {
+function ClientRow({
+  row,
+  isSelected,
+  handleClick,
+  handleMenuOpen,
+  anchorEl,
+  menuRowId,
+  handleMenuClose,
+  handleEdit,
+  handleDelete,
+}) {
   return (
     <TableRow hover role="checkbox" selected={isSelected} aria-checked={isSelected}>
       <TableCell padding="checkbox">
@@ -36,10 +75,10 @@ function ClientRow({ row, isSelected, handleClick, handleMenuOpen, anchorEl, men
         />
       </TableCell>
       <TableCell id={`client-${row.clientId}`}>{row.name}</TableCell>
-      <TableCell>{row.companyName}</TableCell> {/* ✅ Added Company Name Column */}
+      <TableCell>{row.companyName}</TableCell>
       <TableCell>{row.email}</TableCell>
       <TableCell>{row.contactNumber}</TableCell>
-      <TableCell>{row.createdDate}</TableCell>
+      <TableCell>{new Date(row.createdDate).toLocaleString()}</TableCell>
       <TableCell align="center">
         <Button
           variant="contained"
@@ -74,27 +113,30 @@ export default function ClientPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { triggerClientRefresh } = useClientRefresh();
 
-  // Fetch clients from API
+  // ✅ Fetch clients from API
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const headers = getAuthHeaders();
+      if (!headers) throw new Error("Authentication failed. Please log in.");
+
+      const response = await fetch(`${API_BASE}/api/clients`, { headers });
+      if (!response.ok) throw new Error("Failed to fetch clients");
+
+      const data = await response.json();
+      setRows(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      console.error("Error fetching clients:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("http://localhost:5264/api/clients");
-        if (!response.ok) {
-          throw new Error("Failed to fetch clients");
-        }
-        const data = await response.json();
-        setRows(data);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        console.error("Error fetching clients:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchClients();
   }, []);
 
@@ -140,17 +182,30 @@ export default function ClientPage() {
   const handleDelete = async (clientId) => {
     if (window.confirm("Are you sure you want to delete this client?")) {
       try {
-        const response = await fetch(`http://localhost:5264/api/clients/${clientId}`, {
+        const headers = getAuthHeaders();
+        if (!headers) throw new Error("Authentication failed. Please log in.");
+
+        const response = await fetch(`${API_BASE}/api/clients/${clientId}`, {
           method: "DELETE",
+          headers,
         });
-        
+
         if (!response.ok) {
-          throw new Error("Failed to delete client");
+          const errorText = await response.text();
+          throw new Error(`Failed to delete client (${response.status}): ${errorText}`);
         }
-        
+
         // Remove client from state
         setRows((prevRows) => prevRows.filter((row) => row.clientId !== clientId));
         setSelected((prevSelected) => prevSelected.filter((id) => id !== clientId));
+        
+          // Log activity and refresh dashboard
+          await logClientActivity({
+            actionType: "Delete",
+            description: `Deleted client ID: ${clientId}`,
+            recordId: clientId,
+          });
+        triggerClientRefresh();
         handleMenuClose();
         alert("Client deleted successfully!");
       } catch (err) {
@@ -204,7 +259,7 @@ export default function ClientPage() {
               color: "black",
               "&:hover": { backgroundColor: "#e0e0e0" },
             }}
-            onClick={() => navigate("/dashboard/new-client")}
+            onClick={() => navigate("/dashboard/new-client")} // ✅ Original navigation restored
           >
             New Client
           </Button>
@@ -226,7 +281,7 @@ export default function ClientPage() {
                   />
                 </TableCell>
                 <TableCell>Client Name</TableCell>
-                <TableCell>Company Name</TableCell> {/* ✅ Added Column */}
+                <TableCell>Company Name</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Contact Number</TableCell>
                 <TableCell>Created Date</TableCell>

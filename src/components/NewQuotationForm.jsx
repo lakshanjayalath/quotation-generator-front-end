@@ -35,12 +35,14 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import axios from "axios";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useQuotationRefresh } from "../context/QuotationRefreshContext";
 
 export default function NewQuotationForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
   const isEditMode = Boolean(id);
+  const { triggerQuotationRefresh } = useQuotationRefresh();
   
   const [tabValue, setTabValue] = useState(0);
   const [items, setItems] = useState([]);
@@ -450,6 +452,8 @@ export default function NewQuotationForm() {
         console.log("Quotation saved:", response.data);
         alert("Quotation saved successfully!");
       }
+      // Notify dashboard listeners (e.g., RecentActivity) to refresh
+      triggerQuotationRefresh();
       navigate("/dashboard/quotes");
     } catch (error) {
       console.error("Error saving quotation:", error);

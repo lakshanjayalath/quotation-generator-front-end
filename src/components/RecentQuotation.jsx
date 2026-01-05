@@ -1,156 +1,124 @@
 import React, { useState, useEffect } from "react";
-import { 
-    Box, 
-    Typography, 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableContainer, 
-    TableHead, 
-    TableRow, 
-    Paper, 
-    CircularProgress,
-    Alert
+import {
+    Box, Typography, Table, TableBody, TableCell,
+    TableContainer, TableHead, TableRow, Paper,
+    CircularProgress, Alert
 } from "@mui/material";
 
-// CRITICAL ADDITION: Import the context hook
-import { useQuotationRefresh } from "../context/QuotationRefreshContext"; 
+import { useQuotationRefresh } from "../context/QuotationRefreshContext";
 
 const API_URL = "http://localhost:5264/api/Dashboard/recent-quotations";
 
 const RecentQuotation = () => {
-    // 1. Get the refresh key from context 
-    const { quotationRefreshKey } = useQuotationRefresh(); 
+    const { quotationRefreshKey } = useQuotationRefresh();
 
-    // 2. State definitions
     const [quotations, setQuotations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Helper function for reliable date formatting
-    const formatQuotationDate = (dateString) => {
-        if (!dateString) return "N/A";
-        try {
-            return new Date(dateString).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch {
-            return dateString;
-        }
+    const formatDate = (date) => {
+        if (!date) return "";
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        });
     };
 
-    // Helper function for reliable currency formatting
-    const formatCurrency = (amount) => {
-        if (typeof amount !== 'number') return 'N/A';
-        return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    };
+    const formatCurrency = (amount) =>
+        `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
-    // 3. Data fetching logic
     useEffect(() => {
-        const fetchQuotationData = async () => {
+        const fetchData = async () => {
             setLoading(true);
             setError(null);
-            
-            const authToken = localStorage.getItem('authToken'); 
 
-            if (!authToken) {
-                setError("Authentication failed. Please log in.");
+            const token = localStorage.getItem("authToken");
+            if (!token) {
+                setError("Authentication required.");
                 setLoading(false);
-                return; 
+                return;
             }
 
             try {
-                const response = await fetch(API_URL, {
+                const res = await fetch(API_URL, {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json',
-                    },
-                }); 
-                
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        throw new Error("Unauthorized. Your session may have expired.");
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json"
                     }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                });
 
-                const data = await response.json(); 
-                setQuotations(data);
-                setError(null);
+                if (!res.ok) throw new Error("Failed to fetch quotations");
 
+                const data = await res.json();
+
+                // Normalize and validate: ensure non-empty ID and non-null date
+                const normalized = (Array.isArray(data) ? data : []).map((q) => {
+                    const id = q.quotationId ?? q.id ?? q.QuoteId ?? q.QuoteID ?? q.quotationID;
+                    const clientName = q.clientName ?? q.ClientName ?? q.client ?? "";
+                    const date = q.quotationDate ?? q.quoteDate ?? q.QuoteDate ?? q.date ?? q.Date ?? null;
+                    const total = q.total ?? q.amount ?? q.Amount ?? q.NetAmount ?? 0;
+                    return { id, clientName, date, total };
+                }).filter(q => q.id && q.date);
+
+                // Sort ascending by ID (numeric when possible, else lexicographic)
+                const parseId = (val) => {
+                    const n = Number(val);
+                    return Number.isNaN(n) ? null : n;
+                };
+                const sorted = normalized.slice().sort((a, b) => {
+                    const ai = parseId(a.id);
+                    const bi = parseId(b.id);
+                    if (ai != null && bi != null) return ai - bi;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+
+                setQuotations(sorted);
             } catch (err) {
-                console.error("Error fetching recent quotations:", err);
-                const errorMessage = err.message.includes("Unauthorized") 
-                    ? "Session expired. Please log in again."
-                    : "Failed to load quotations. Check API URL and server status.";
-                setError(errorMessage);
+                setError("Unable to load quotations.");
                 setQuotations([]);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchQuotationData();
-    // CRITICAL FIX: Add quotationRefreshKey to the dependency array
-    }, [quotationRefreshKey]); 
+        fetchData();
+    }, [quotationRefreshKey]);
 
-    // 4. Render content 
     return (
-        <Box
-            sx={{
-                backgroundColor: "#fff",
-                borderRadius: 2,
-                p: 3,
-                boxShadow: "0px 2px 8px rgba(0,0,0,0.1)",
-                minHeight: 300,
-                // Ensure TableContainer doesn't introduce scroll if not needed
-                overflowX: 'hidden' 
-            }}
-        >
-            <Typography variant="h6" sx={{ mb: 2 }}>
+        <Box sx={{ background: "#fff", borderRadius: 2, p: 3, boxShadow: 1, height: 350 }}>
+            <Typography variant="h6" mb={2}>
                 Recent Quotations 📝
             </Typography>
 
             {loading ? (
-                <Box display="flex" justifyContent="center" py={4}>
-                    <CircularProgress size={24} />
-                    <Typography ml={2}>Loading data...</Typography>
-                </Box>
+                <CircularProgress />
             ) : error ? (
-                <Alert severity="error" sx={{ py: 2 }}>
-                    {error}
-                </Alert>
+                <Alert severity="error">{error}</Alert>
             ) : quotations.length === 0 ? (
-                <Typography color="text.secondary" align="center" py={4}>
-                    No recent quotations found.
+                <Typography color="text.secondary">
+                    No quotations found.
                 </Typography>
             ) : (
                 <TableContainer component={Paper} elevation={0}>
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                {/* Adjusted column headers for clarity/completeness */}
-                                <TableCell sx={{ fontWeight: 'bold' }}>Quote ID</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>Client</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Total ($)</TableCell>
+                                <TableCell><b>ID</b></TableCell>
+                                <TableCell><b>Client</b></TableCell>
+                                <TableCell><b>Date</b></TableCell>
+                                <TableCell align="right"><b>Total</b></TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {quotations.map((quote) => (
-                                <TableRow key={quote.id || quote.quotationId || quote._id}> 
-                                    {/* FIX: Use quotationId/id for robustness */}
-                                    <TableCell>{quote.quotationId || quote.id || 'N/A'}</TableCell>
-                                    {/* FIX: Use clientName property */}
-                                    <TableCell>{quote.clientName || 'N/A'}</TableCell> 
-                                    {/* FIX: Use quotationDate property */}
-                                    <TableCell>{formatQuotationDate(quote.quotationDate || quote.quoteDate)}</TableCell> 
-                                    {/* FIX: Use formatCurrency helper */}
-                                    <TableCell align="right">
-                                        {formatCurrency(quote.total || quote.quotationTotal)}
-                                    </TableCell>
+                            {quotations.map((q, idx) => (
+                                <TableRow key={q.id || idx}>
+                                    <TableCell>{q.id}</TableCell>
+                                    <TableCell>{q.clientName}</TableCell>
+                                    <TableCell>{formatDate(q.date)}</TableCell>
+                                    <TableCell align="right">{formatCurrency(Number(q.total) || 0)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

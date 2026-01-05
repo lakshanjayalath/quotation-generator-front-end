@@ -24,6 +24,34 @@ import axios from "axios";
 // 🎯 IMPORT THE REFRESH HOOK
 import { useClientRefresh } from "../context/ClientRefreshContext"; // Ensure the path is correct
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5264";
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("authToken");
+  return token ? { Authorization: `Bearer ${token}` } : null;
+};
+
+  const logClientActivity = async ({ actionType, description, recordId }) => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
+
+    try {
+      await axios.post(
+        `${API_BASE}/api/activitylogs`,
+        {
+          entityName: "Client",
+          recordId,
+          actionType,
+          description,
+        },
+        { headers }
+      );
+      console.log("✓ Activity logged:", actionType, description);
+    } catch (err) {
+      console.error("Failed to log client activity:", err);
+    }
+  };
+
 export default function NewClientForm({ initialData = null, onSave }) {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -82,7 +110,12 @@ export default function NewClientForm({ initialData = null, onSave }) {
           setNextClientIdError(false);
           
           // Call the backend endpoint to get the next Client ID
-          const response = await axios.get("http://localhost:5264/api/clients/next-id");
+          const headers = getAuthHeaders();
+          if (!headers) throw new Error("Missing auth token");
+
+          const response = await axios.get(`${API_BASE}/api/clients/next-id`, {
+            headers,
+          });
           const nextId = response.data.nextId || response.data.id;
           
           // Update formData with the fetched Client ID
@@ -110,7 +143,12 @@ export default function NewClientForm({ initialData = null, onSave }) {
       const fetchClient = async () => {
         try {
           setLoading(true);
-          const response = await axios.get(`http://localhost:5264/api/clients/${id}`);
+          const headers = getAuthHeaders();
+          if (!headers) throw new Error("Missing auth token");
+
+          const response = await axios.get(`${API_BASE}/api/clients/${id}`, {
+            headers,
+          });
           console.log("Fetched client data:", response.data);
 
           // Ensure contacts array exists
@@ -221,10 +259,20 @@ export default function NewClientForm({ initialData = null, onSave }) {
 
       if (id) {
         // Update existing client
-        await axios.put(`http://localhost:5264/api/clients/${id}`, payload);
+        const headers = getAuthHeaders();
+        if (!headers) throw new Error("Missing auth token");
+
+        await axios.put(`${API_BASE}/api/clients/${id}`, payload, {
+          headers,
+        });
       } else {
         // 🎯 Create new client and capture the response with generated ID
-        const response = await axios.post("http://localhost:5264/api/clients", payload);
+        const headers = getAuthHeaders();
+        if (!headers) throw new Error("Missing auth token");
+
+        const response = await axios.post(`${API_BASE}/api/clients`, payload, {
+          headers,
+        });
         
         // 🎯 Extract the auto-generated Client ID from the backend response
         const generatedClientId = response.data.id;
@@ -236,6 +284,14 @@ export default function NewClientForm({ initialData = null, onSave }) {
         }));
         
         console.log("✓ Client created successfully with ID:", generatedClientId);
+        console.log("📊 Triggering dashboard refresh for Recent Activity & Recent Clients...");
+        
+          // Log activity
+          await logClientActivity({
+            actionType: "Create",
+            description: `Created client: ${payload.clientName || payload.name}`,
+            recordId: generatedClientId,
+          });
         
         // 🎯 CRITICAL FIX: Trigger the dashboard refresh after successful creation
         triggerClientRefresh();
