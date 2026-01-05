@@ -6,6 +6,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 // 🛑 Context Providers
 import { ClientRefreshProvider } from "../context/ClientRefreshContext";
 import { QuotationRefreshProvider } from "../context/QuotationRefreshContext";
+import { DashboardRefreshProvider } from "../context/DashboardRefreshContext";
 
 // Layout Components
 import Sidebar from "../components/SideBar";
@@ -32,72 +33,72 @@ export default function Dashboard() {
   const isSettingPage = location.pathname.startsWith("/dashboard/setting");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      
-      {/* Top Bar */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: `${topBarHeight}px`,
-          zIndex: 1000,
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
-        <TopBar />
-      </div>
+    <DashboardRefreshProvider>
+      <ClientRefreshProvider>
+        <QuotationRefreshProvider>
 
-      {/* Sidebar + Main Content */}
-      <div style={{ display: "flex", flex: 1, marginTop: `${topBarHeight}px` }}>
-        
-        {/* Sidebar */}
-        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+          <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
 
-        {/* Main Content */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: isSettingPage ? "0px" : "20px",
-          }}
-        >
-          <ClientRefreshProvider>
-            <QuotationRefreshProvider>
-              <Routes>
+            {/* Top Bar */}
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: `${topBarHeight}px`,
+                zIndex: 1000,
+                borderBottom: "1px solid #e0e0e0",
+              }}
+            >
+              <TopBar />
+            </div>
 
-                {/* Overview */}
-                <Route index element={<Overview collapsed={collapsed} />} />
+            {/* Sidebar + Main Content */}
+            <div style={{ display: "flex", flex: 1, marginTop: `${topBarHeight}px` }}>
 
-                {/* Clients */}
-                <Route path="clients" element={<ClientPage />} />
-                <Route path="clients/edit/:id" element={<NewClientForm />} />
-                <Route path="new-client" element={<NewClientForm />} />
+              {/* Sidebar */}
+              <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-                {/* Items & Quotes */}
-                <Route path="items" element={<ItemPage />} />
-                <Route path="quotes" element={<QuotationList />} />
-                <Route path="new-item" element={<NewItemForm />} />
-                <Route path="edit-item/:id" element={<NewItemForm />} />
-                <Route path="new-quote" element={<NewQuotationForm />} />
-                <Route path="edit-quote/:id" element={<NewQuotationForm />} />
+              {/* Main Content */}
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: isSettingPage ? "0px" : "20px",
+                }}
+              >
+                <Routes>
 
-                {/* Reports & Settings */}
-                <Route path="reports" element={<Report />} />
-                <Route path="setting/*" element={<Setting />} />
-                <Route path="admin-register" element={<AdminRegisterPage />} />
-                <Route path="edit-profile" element={<EditUserProfile />} />
+                  {/* Overview (Dashboard Home) */}
+                  <Route index element={<Overview collapsed={collapsed} />} />
 
-              </Routes>
-            </QuotationRefreshProvider>
-          </ClientRefreshProvider>
-        </div>
-      </div>
-    </div>
+                  {/* Clients */}
+                  <Route path="clients" element={<ClientPage />} />
+                  <Route path="clients/edit/:id" element={<NewClientForm />} />
+                  <Route path="new-client" element={<NewClientForm />} />
+
+                  {/* Items & Quotes */}
+                  <Route path="items" element={<ItemPage />} />
+                  <Route path="quotes" element={<QuotationList />} />
+                  <Route path="new-item" element={<NewItemForm />} />
+                  <Route path="edit-item/:id" element={<NewItemForm />} />
+                  <Route path="new-quote" element={<NewQuotationForm />} />
+                  <Route path="edit-quote/:id" element={<NewQuotationForm />} />
+
+                  {/* Reports & Settings */}
+                  <Route path="reports" element={<Report />} />
+                  <Route path="setting/*" element={<Setting />} />
+                  <Route path="admin-register" element={<AdminRegisterPage />} />
+                  <Route path="edit-profile" element={<EditUserProfile />} />
+
+                </Routes>
+              </div>
+            </div>
+          </div>
+
+        </QuotationRefreshProvider>
+      </ClientRefreshProvider>
+    </DashboardRefreshProvider>
   );
 }
-
-
-
-

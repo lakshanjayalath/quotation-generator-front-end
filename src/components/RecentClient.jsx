@@ -1,23 +1,34 @@
 import React, { useState, useEffect } from "react";
 import {
-    Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress
+    Box,
+    Typography,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    CircularProgress
 } from "@mui/material";
+import { useClientRefresh } from "../context/ClientRefreshContext";
 
-// Ensure this URL is correct
-const API_URL = "http://localhost:5264/api/Dashboard/recent-clients"; 
+const API_URL = "http://localhost:5264/api/Dashboard/recent-clients";
 
 const RecentClient = ({ refreshKey }) => {
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { clientRefreshKey } = useClientRefresh();
 
     useEffect(() => {
         const fetchClientData = async () => {
+            console.log("🔄 RecentClient: Fetching data... (refreshKey changed)");
             setLoading(true);
             setError(null);
-            const authToken = localStorage.getItem("authToken");
 
-            if (!authToken) {
+            const token = localStorage.getItem("authToken");
+            if (!token) {
                 setError("Authentication failed. Please log in.");
                 setLoading(false);
                 return;
@@ -26,45 +37,42 @@ const RecentClient = ({ refreshKey }) => {
             try {
                 const response = await fetch(API_URL, {
                     headers: {
-                        "Authorization": `Bearer ${authToken}`,
-                        "Content-Type": "application/json"
-                    }
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP ${response.status}`);
                 }
 
                 const data = await response.json();
-                setClients(data);
-                setError(null);
+                console.log("✓ RecentClient data loaded:", data);
+
+                // ✅ SAFETY: ensure array
+                setClients(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("Error fetching recent clients:", err);
-                const errorMessage = err.message.includes("Unauthorized") 
-                    ? "Session expired. Please log in again." 
-                    : "Failed to load clients. Check API URL and server status.";
-                setError(errorMessage);
+                setError("Failed to load clients.");
                 setClients([]);
             } finally {
                 setLoading(false);
             }
         };
 
-        // refreshKey triggers a new fetch when a new client is saved
         fetchClientData();
-    }, [refreshKey]);
+    }, [refreshKey, clientRefreshKey]);
 
     const formatClientDate = (dateString) => {
         if (!dateString) return "N/A";
-        try {
-            return new Date(dateString).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric"
-            });
-        } catch {
-            return dateString; 
-        }
+        const date = new Date(dateString);
+        return isNaN(date.getTime())
+            ? "N/A"
+            : date.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+              });
     };
 
     return (
@@ -75,7 +83,7 @@ const RecentClient = ({ refreshKey }) => {
                 marginTop: 0.5,
                 p: 3,
                 boxShadow: "0px 2px 8px rgba(0,0,0,0.1)",
-                minHeight: 300
+                minHeight: 350,
             }}
         >
             <Typography variant="h6" sx={{ mb: 2 }}>
@@ -100,23 +108,30 @@ const RecentClient = ({ refreshKey }) => {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>ID</TableCell>
-                                <TableCell>Name</TableCell>
-                                <TableCell>Email</TableCell>
-                                <TableCell>Contact No.</TableCell>
-                                <TableCell>Date Joined</TableCell>
+                                <TableCell><b>ID</b></TableCell>
+                                <TableCell><b>Name</b></TableCell>
+                                <TableCell><b>Email</b></TableCell>
+                                <TableCell><b>Contact No.</b></TableCell>
+                                <TableCell><b>Date Joined</b></TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {clients.map((client) => (
-                                <TableRow key={client.id}> 
-                                    {/* ✅ FIX: Use camelCase property names */}
-                                    <TableCell>{client.id}</TableCell>
-                                    <TableCell>{client.clientName}</TableCell> 
-                                    <TableCell>{client.clientEmail}</TableCell>
-                                    <TableCell>{client.clientContactNumber}</TableCell>
+                            {clients.map((client, index) => (
+                                <TableRow key={client.id ?? index}>
+                                    <TableCell>{client.id ?? "-"}</TableCell>
                                     <TableCell>
-                                        {formatClientDate(client.createdDate)}
+                                        {client.clientName ?? client.name ?? "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {client.clientEmail ?? client.email ?? "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {client.clientContactNumber ?? client.phone ?? "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {formatClientDate(
+                                            client.createdDate ?? client.createdAt
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
