@@ -38,8 +38,6 @@ export default function Report() {
     reportType: "Activity",
     sendEmail: false,
     includeDeleted: false,
-
-    // Filters
     startDate: "",
     endDate: "",
     actionType: "All",
@@ -51,8 +49,7 @@ export default function Report() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
-
-  const [tableSortBy, setTableSortBy] = useState(""); // optional: header click sort
+  const [tableSortBy, setTableSortBy] = useState("");
   const [tableSortDir, setTableSortDir] = useState("ASC");
   const [pageNum, setPageNum] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -62,20 +59,13 @@ export default function Report() {
       event?.target?.type === "checkbox"
         ? event.target.checked
         : event.target.value;
-
+    
+    console.log(`[Form Change] ${field} = ${value}`);
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Convert empty strings to null or numeric values
-  const toNullableNumber = (v) => {
-    if (v === "" || v === null || v === undefined) return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
-
-  // Normalize action type values for backend compatibility
   const normalizeActionType = (v) => {
-    if (!v) return "all";
+    if (!v || v === "") return "all";
     const s = String(v).trim().toLowerCase();
     if (s === "created" || s === "create") return "created";
     if (s === "updated" || s === "update") return "updated";
@@ -85,20 +75,20 @@ export default function Report() {
     return "all";
   };
 
-  // Normalize quotation type for backend compatibility
   const normalizeQuotationType = (v) => {
-    if (!v) return "all";
+    if (!v || v === "") return "all";
     const s = String(v).trim().toLowerCase();
     if (["sent", "accepted", "declined", "expired", "draft"].includes(s)) return s;
     if (s === "all") return "all";
     return "all";
   };
 
-  // Build request payload matching ReportRequestDto on backend
   const buildPayload = (includeOptions = true, overrideSort = null) => {
-    // normalize dates: send null instead of empty string
     const startDate = formData.startDate && formData.startDate.length > 0 ? formData.startDate : null;
     const endDate = formData.endDate && formData.endDate.length > 0 ? formData.endDate : null;
+    
+    const actionTypeValue = normalizeActionType(formData.actionType);
+    const quotationTypeValue = normalizeQuotationType(formData.quotationType);
 
     const payload = {
       reportType: formData.reportType,
@@ -106,41 +96,43 @@ export default function Report() {
         startDate: startDate,
         endDate: endDate,
         includeDeleted: !!formData.includeDeleted,
-        actionType: normalizeActionType(formData.actionType),
-        // FIX: include quotationType so backend can filter Quotes by status
-        quotationType: normalizeQuotationType(formData.quotationType),
+        actionType: actionTypeValue,
+        quotationType: quotationTypeValue,
       },
       options: includeOptions
         ? {
             format: formData.output || null,
             sendEmail: !!formData.sendEmail,
+            sortBy: overrideSort || null,
           }
         : undefined,
     };
 
+    console.log(`[buildPayload] actionType: "${actionTypeValue}", quotationType: "${quotationTypeValue}"`);
     return payload;
   };
 
-  // Fetch report data from backend (preview). Pass overrideSort if header click used.
   const fetchReportData = async (overrideSort = null) => {
     try {
       setLoading(true);
       setReportData([]);
       setPageNum(0);
 
-      // Use ActivityLog API for Activity report type
+      console.log(`[fetchReportData] Report Type: ${formData.reportType}, Action Type: ${formData.actionType}`);
+
       if (formData.reportType === "Activity") {
         await fetchActivityLogData();
         return;
       }
 
-      // For Quotes report, send quotation type explicitly using dedicated helper
       if (formData.reportType === "Quotes") {
         await fetchQuotesData(overrideSort);
         return;
       }
 
-      const payload = buildPayload(true, overrideSort); // include options for sorting
+      const payload = buildPayload(true, overrideSort);
+      console.log("[fetchReportData] Payload:", JSON.stringify(payload, null, 2));
+
       const response = await axios.post("http://localhost:5264/api/reports/generate", payload);
 
       setReportData(Array.isArray(response.data) ? response.data : []);
@@ -155,20 +147,21 @@ export default function Report() {
     }
   };
 
-  // Fetch Activity Log data from dedicated API
   const fetchActivityLogData = async () => {
     try {
-      // Build payload for activity log filter API
+      const actionTypeValue = normalizeActionType(formData.actionType);
+      
       const payload = {
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
-        actionType: normalizeActionType(formData.actionType),
+        actionType: actionTypeValue,
       };
 
+      console.log("[fetchActivityLogData] Payload:", JSON.stringify(payload, null, 2));
+
       const response = await axios.post("http://localhost:5264/api/activitylogs/filter", payload);
-      
-      // Map response data to table format
-      const mappedData = Array.isArray(response.data) 
+
+      const mappedData = Array.isArray(response.data)
         ? response.data.map((log) => ({
             Date: log.timestamp ? new Date(log.timestamp).toLocaleString() : "-",
             User: log.performedBy || log.userName || log.user || "-",
@@ -190,20 +183,22 @@ export default function Report() {
     }
   };
 
-  // Fetch Quotes data with quotation type filter (reference pattern from action type)
   const fetchQuotesData = async (overrideSort = null) => {
     try {
-      // Build payload specifically for Quotes with normalized quotation type
-      const startDate = formData.startDate && formData.startDate.length > 0 ? new Date(formData.startDate).toISOString() : null;
-      const endDate = formData.endDate && formData.endDate.length > 0 ? new Date(formData.endDate).toISOString() : null;
+      const startDate = formData.startDate && formData.startDate.length > 0 ? formData.startDate : null;
+      const endDate = formData.endDate && formData.endDate.length > 0 ? formData.endDate : null;
+
+      const actionTypeValue = normalizeActionType(formData.actionType);
+      const quotationTypeValue = normalizeQuotationType(formData.quotationType);
 
       const payload = {
         reportType: "Quotes",
         filters: {
-          startDate,
-          endDate,
+          startDate: startDate,
+          endDate: endDate,
           includeDeleted: !!formData.includeDeleted,
-          quotationType: normalizeQuotationType(formData.quotationType),
+          actionType: actionTypeValue,
+          quotationType: quotationTypeValue,
         },
         options: {
           format: formData.output || null,
@@ -212,13 +207,31 @@ export default function Report() {
         },
       };
 
+      console.log("============ QUOTES REQUEST ============");
+      console.log("Form Data actionType:", formData.actionType);
+      console.log("Normalized actionType:", actionTypeValue);
+      console.log("Normalized quotationType:", quotationTypeValue);
+      console.log("Full Payload:", JSON.stringify(payload, null, 2));
+      console.log("========================================");
+
       const response = await axios.post("http://localhost:5264/api/reports/generate", payload);
 
-      // Use backend-provided rows directly; keys already match table headers
       const rows = Array.isArray(response.data) ? response.data : [];
+
+      console.log(`✓ Quotes Response: ${rows.length} rows received`);
+      if (rows.length > 0 && rows.length <= 5) {
+        console.log("All rows:", rows);
+      } else if (rows.length > 5) {
+        console.log("First 3 rows:", rows.slice(0, 3));
+      }
+
       setReportData(rows);
       setViewDialogOpen(true);
-      setSnackbar({ open: true, message: "Quotes data loaded successfully", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: `Loaded ${rows.length} quotes (Filter: ${actionTypeValue})`,
+        severity: "success",
+      });
     } catch (error) {
       console.error("Error fetching quotes:", error);
       const msg = error?.response?.data?.message || error?.message || "Unknown error";
@@ -228,20 +241,19 @@ export default function Report() {
     }
   };
 
-  // Export report data
   const handleExport = async () => {
     try {
       setLoading(true);
 
-      // If header sorting is set, send it in options; otherwise dropdown sort is used
       const headerSort = tableSortBy ? `${tableSortBy} ${tableSortDir}` : null;
       const payload = buildPayload(true, headerSort);
+
+      console.log("[Export] Payload:", JSON.stringify(payload, null, 2));
 
       const response = await axios.post("http://localhost:5264/api/reports/export", payload, {
         responseType: "blob",
       });
 
-      // determine file extension from output type (formData.output)
       const ext = getFileExtension(formData.output);
       const filename = `report_${formData.reportType}_${new Date().getTime()}.${ext}`;
 
@@ -264,17 +276,17 @@ export default function Report() {
     }
   };
 
-  // Print report: open a new printable window synchronously (user gesture) to avoid popup blocking.
   const handlePrint = () => {
     if (!reportData || reportData.length === 0) {
       setSnackbar({ open: true, message: "No data to print", severity: "info" });
       return;
     }
 
+    console.log(`[Print] ${reportData.length} rows, Report: ${formData.reportType}, ActionType: ${formData.actionType}`);
+
     const cols = getTableColumns(formData.reportType);
     const html = buildPrintableHtml(cols, reportData, formData.reportType);
 
-    // Open synchronously from the click handler (no features string)
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       setSnackbar({ open: true, message: "Unable to open print window (popup blocked?)", severity: "error" });
@@ -288,14 +300,11 @@ export default function Report() {
     try {
       printWindow.focus();
       printWindow.print();
-      // optionally close after printing:
-      // printWindow.close();
     } catch (e) {
       setSnackbar({ open: true, message: "Print dialog may be blocked by browser policy", severity: "warning" });
     }
   };
 
-  // Helper to build printable HTML
   const buildPrintableHtml = (columns, data, title) => {
     const style = `
       <style>
@@ -305,7 +314,6 @@ export default function Report() {
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
         th { background: #f5f5f5; font-weight: bold; color: #BC4749; }
         tr:nth-child(even) { background: #fbfbfb; }
-        .nowrap { white-space: nowrap; }
       </style>
     `;
 
@@ -329,7 +337,6 @@ export default function Report() {
     return String(v);
   };
 
-  // Escape HTML entities
   const escapeHtml = (unsafe) => {
     return String(unsafe)
       .replace(/&/g, "&amp;")
@@ -339,7 +346,6 @@ export default function Report() {
       .replace(/'/g, "&#039;");
   };
 
-  // File extension helper
   const getFileExtension = (format) => {
     const extensions = {
       PDF: "pdf",
@@ -350,7 +356,6 @@ export default function Report() {
     return extensions[format] || "txt";
   };
 
-  // TextField styling
   const textFieldStyle = {
     "& label.Mui-focused": { color: "#BC4749" },
     "& .MuiOutlinedInput-root": {
@@ -358,17 +363,13 @@ export default function Report() {
     },
   };
 
-  // Switch styling
   const switchStyle = {
     "& .Mui-checked": { color: "#4a7c59" },
     "& .Mui-checked + .MuiSwitch-track": { backgroundColor: "#4a7c59" },
   };
 
-  // Optional: header click sort handler (maps displayed column to actual column name)
-  // If your backend uses different column names, you can adapt `mapColumnNameForBackend`.
   const mapColumnNameForBackend = (displayColumn) => {
     const map = {
-      // map display names to backend column names (exactly match DataTable column names)
       "Invoice ID": "Invoice ID",
       Client: "Client",
       Amount: "Amount",
@@ -391,6 +392,8 @@ export default function Report() {
       "Last Login": "Last Login",
       User: "User",
       Action: "Action",
+      ActionType: "ActionType",
+      EntityName: "EntityName",
       Description: "Description",
     };
     return map[displayColumn] || displayColumn;
@@ -405,15 +408,14 @@ export default function Report() {
     setTableSortDir(nextDir);
     setPageNum(0);
 
-    // Build backend sort string like "Amount DESC"
     const sortStr = `${backendColumn} ${nextDir}`;
     fetchReportData(sortStr);
   };
 
-  // Pagination handlers
   const handleChangePage = (event, newPage) => {
     setPageNum(newPage);
   };
+
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPageNum(0);
@@ -499,8 +501,8 @@ export default function Report() {
         </Box>
 
         <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="lg" fullWidth PaperProps={{ sx: { maxHeight: "90vh" } }}>
-          <DialogTitle>
-            <Typography variant="h6">{formData.reportType} Report</Typography>
+          <DialogTitle component="div">
+            {formData.reportType} Report
           </DialogTitle>
           <DialogContent dividers>
             {reportData.length === 0 ? (
@@ -562,7 +564,7 @@ export default function Report() {
           </DialogActions>
         </Dialog>
 
-        <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+        <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false})} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
           <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
             {snackbar.message}
           </Alert>
@@ -572,39 +574,6 @@ export default function Report() {
   );
 }
 
-// Helper function to map display column to backend column
-function mapColumnNameForBackend(displayColumn) {
-  const map = {
-    "Invoice ID": "Invoice ID",
-    Client: "Client",
-    Amount: "Amount",
-    Date: "Date",
-    Status: "Status",
-    "Due Date": "Due Date",
-    "Quote ID": "Quote ID",
-    "Expiry Date": "Expiry Date",
-    "Client Name": "Client Name",
-    Email: "Email",
-    Phone: "Phone",
-    Address: "Address",
-    "Product Name": "Product Name",
-    SKU: "SKU",
-    Category: "Category",
-    Price: "Price",
-    Stock: "Stock",
-    "User Name": "User Name",
-    Role: "Role",
-    "Last Login": "Last Login",
-    User: "User",
-    Action: "Action",
-    ActionType: "ActionType",
-    EntityName: "EntityName",
-    Description: "Description",
-  };
-  return map[displayColumn] || displayColumn;
-}
-
-// Helper function to get table columns based on report type
 function getTableColumns(reportType) {
   const columnMap = {
     Activity: ["Date", "User", "ActionType", "EntityName", "Description"],
@@ -616,13 +585,11 @@ function getTableColumns(reportType) {
   return columnMap[reportType] || ["Data"];
 }
 
-// Helper function to format cell values
 function formatCellValue(value) {
   if (value === null || value === undefined) return "-";
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "object") return JSON.stringify(value);
   if (typeof value === "number") {
-    // show 2 decimals for floats
     return Number.isInteger(value) ? value.toString() : value.toFixed(2);
   }
   return value;
